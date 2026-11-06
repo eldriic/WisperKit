@@ -20,7 +20,8 @@ WK_INTEGRATION=1 swift test --scratch-path ~/Library/Caches/WisperKit/spm --filt
 Les builds se font hors de `~/Documents` : iCloud Drive y ajoute des attributs étendus qui cassent `codesign`.
 
 En Debug, deux modes utilitaires :
-`WisperKit --snapshots <dossier>` (PNG de chaque écran) et `WisperKit --selftest <s>` (micro → modèle → presse-papiers).
+`WisperKit --snapshots <dossier>` (PNG de chaque écran) et `WisperKit --selftest <s> [--paste <bundle id>]` (micro → modèle → presse-papiers, collage dans l'app donnée).
+Diagnostic du collage : `~/Library/Logs/WisperKit/wisperkit.log`.
 
 Signature ad-hoc par défaut : après chaque nouveau build, macOS peut demander de réactiver
 l'Accessibilité. Avec un certificat local de signature de code « WisperKit Dev » :

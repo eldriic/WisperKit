@@ -2,7 +2,6 @@ import AppKit
 import AVFoundation
 import KeyboardShortcuts
 import Observation
-import os
 import ServiceManagement
 import WisperKitCore
 
@@ -11,8 +10,6 @@ extension KeyboardShortcuts.Name {
     /// Actif seulement pendant l'écoute, pour ne pas voler Échap au reste du système.
     static let cancelDictation = Self("cancelDictation", initial: .init(.escape))
 }
-
-let log = Logger(subsystem: "com.eldriic.wisperkit", category: "app")
 
 enum TriggerMode: String, CaseIterable, Identifiable {
     case toggle, hold
@@ -123,7 +120,7 @@ final class AppModel {
         KeyboardShortcuts.disable(.cancelDictation)
         KeyboardShortcuts.onKeyDown(for: .toggleDictation) { [weak self] in
             guard let self else { return }
-            log.info("raccourci ↓ état=\(String(describing: self.dictation.state), privacy: .public) modèle=\(String(describing: self.modelState), privacy: .public)")
+            DiagnosticLog.write("raccourci ↓ état=\(String(describing: self.dictation.state)) modèle=\(String(describing: self.modelState))")
             guard self.canDictate else { return }
             switch self.mode {
             case .toggle: self.dictation.toggle()
@@ -161,7 +158,7 @@ final class AppModel {
                     TextInserter.requestAccessibility()
                 }
             }
-            log.info("texte livré, collé=\(pasted, privacy: .public) accessibilité=\(TextInserter.hasAccessibility, privacy: .public)")
+            DiagnosticLog.write("texte livré, collé=\(pasted) accessibilité=\(TextInserter.hasAccessibility)")
             play("Glass")
         case .cancelled:
             hud.hide()

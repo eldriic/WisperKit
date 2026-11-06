@@ -35,16 +35,26 @@ enum Snapshots {
             guard app.modelState == .ready else { print("SELFTEST modèle: \(app.modelState)"); exit(1) }
             // Sans passer par les réglages persistés (même identifiant que l'app installée).
             app.transientMute = true
+            // --paste <bundle id> : colle dans cette app seulement (remise au premier plan avant).
+            let target = args.firstIndex(of: "--paste").flatMap { $0 + 1 < args.count ? args[$0 + 1] : nil }
             app.dictation.autoPaste = false
             print("SELFTEST écoute \(seconds) s"); fflush(stdout)
             app.dictation.start()
             try? await Task.sleep(for: .seconds(seconds))
+            if let target, let running = NSRunningApplication.runningApplications(withBundleIdentifier: target).first {
+                running.activate()
+                try? await Task.sleep(for: .milliseconds(500))
+                let front = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+                app.dictation.autoPaste = front == target
+                print("SELFTEST cible=\(target) premier plan=\(front ?? "?") collage=\(app.dictation.autoPaste)")
+            }
             let clock = ContinuousClock(), t0 = clock.now
             app.dictation.stop()
             await app.dictation.waitForCompletion()
             print("SELFTEST état: \(app.dictation.state) · transcription \(clock.now - t0)")
             print("SELFTEST texte: \(app.dictation.lastText ?? "<vide>")")
             print("SELFTEST presse-papiers: \(NSPasteboard.general.string(forType: .string) ?? "<vide>")")
+            try? await Task.sleep(for: .milliseconds(1500)) // laisse partir ⌘V et la restauration
             exit(0)
         }
     }

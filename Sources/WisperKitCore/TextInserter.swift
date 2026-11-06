@@ -1,6 +1,6 @@
 import AppKit
 import ApplicationServices
-import os
+import Carbon.HIToolbox
 
 /// Destination du texte transcrit (permet de tester le contrôleur).
 @MainActor
@@ -11,6 +11,7 @@ public protocol TextOutput: AnyObject {
 }
 
 /// Met le texte dans le presse-papiers puis simule ⌘V dans l'app au premier plan.
+/// Diagnostic : ~/Library/Logs/WisperKit/wisperkit.log
 @MainActor
 public final class TextInserter: TextOutput {
     public init() {}
@@ -30,23 +31,27 @@ public final class TextInserter: TextOutput {
         pb.clearContents()
         pb.setString(text, forType: .string)
 
+        let front = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "?"
+        let trusted = Self.hasAccessibility
+        let secure = IsSecureEventInputEnabled()
+        DiagnosticLog.write("livraison \(text.count) car. → app=\(front) autoPaste=\(autoPaste) accessibilité=\(trusted) saisieSécurisée=\(secure)")
+
         guard autoPaste else { return false }
-        guard Self.hasAccessibility else {
-            Logger(subsystem: "com.eldriic.wisperkit", category: "paste")
-                .error("collage impossible : processus non autorisé (Accessibilité)")
+        guard trusted else {
+            DiagnosticLog.write("collage impossible : WisperKit n'est pas autorisé dans Accessibilité")
             return false
         }
-        Self.pressCommandV()
-
-        if let saved {
-            // Laisse le temps à l'app cible de lire le presse-papiers avant de le restaurer.
-            let count = pb.changeCount
-            Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(600))
-                guard pb.changeCount == count else { return } // l'utilisateur a recopié entre-temps
-                pb.clearContents()
-                pb.writeObjects(saved)
-            }
+        let count = pb.changeCount
+        Task { @MainActor in
+            await Self.pressCommandV()
+            DiagnosticLog.write("⌘V envoyé à \(front)")
+            guard let saved else { return }
+            // Laisse à l'app cible (Chromium/Electron lit le presse-papiers en asynchrone)
+            // le temps de coller avant de restaurer l'ancien contenu.
+            try? await Task.sleep(for: .milliseconds(1000))
+            guard pb.changeCount == count else { return } // l'utilisateur a recopié entre-temps
+            pb.clearContents()
+            pb.writeObjects(saved)
         }
         return true
     }
@@ -61,14 +66,21 @@ public final class TextInserter: TextOutput {
         }
     }
 
-    private static func pressCommandV() {
-        let source = CGEventSource(stateID: .combinedSessionState)
-        let v: CGKeyCode = 9 // touche V (ANSI ; même code en AZERTY)
-        let down = CGEvent(keyboardEventSource: source, virtualKey: v, keyDown: true)
-        let up = CGEvent(keyboardEventSource: source, virtualKey: v, keyDown: false)
-        down?.flags = .maskCommand
-        up?.flags = .maskCommand
-        down?.post(tap: .cghidEventTap)
-        up?.post(tap: .cghidEventTap)
+    /// Séquence complète ⌘↓ V↓ V↑ ⌘↑ : les apps Chromium/Electron ignorent souvent un
+    /// « V » portant seulement le drapeau ⌘ sans vrai appui de la touche Commande.
+    private static func pressCommandV() async {
+        let source = CGEventSource(stateID: .hidSystemState)
+        let command: CGKeyCode = 0x37 // kVK_Command
+        let v: CGKeyCode = 0x09       // kVK_ANSI_V (même position physique en AZERTY)
+        let steps: [(CGKeyCode, Bool, CGEventFlags)] = [
+            (command, true, .maskCommand), (v, true, .maskCommand),
+            (v, false, .maskCommand), (command, false, []),
+        ]
+        for (key, down, flags) in steps {
+            let event = CGEvent(keyboardEventSource: source, virtualKey: key, keyDown: down)
+            event?.flags = flags
+            event?.post(tap: .cgSessionEventTap)
+            try? await Task.sleep(for: .milliseconds(12))
+        }
     }
 }
