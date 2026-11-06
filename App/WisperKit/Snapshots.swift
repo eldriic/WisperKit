@@ -32,6 +32,19 @@ enum Snapshots {
         exit(0)
     }
 
+    /// Icône de l'app (1024 px, grille macOS : forme de 824 px centrée) :
+    ///   WisperKit --icon <fichier.png>
+    static func renderIconIfRequested() {
+        let args = CommandLine.arguments
+        guard let i = args.firstIndex(of: "--icon"), i + 1 < args.count else { return }
+        let renderer = ImageRenderer(content: AppIconArt())
+        renderer.scale = 1
+        guard let cg = renderer.cgImage else { print("ICON échec"); exit(1) }
+        let rep = NSBitmapImageRep(cgImage: cg)
+        try? rep.representation(using: .png, properties: [:])?.write(to: URL(filePath: args[i + 1]))
+        exit(0)
+    }
+
     /// Chaîne réelle micro → modèle actif → presse-papiers, sans raccourci :
     ///   WisperKit --selftest <secondes>   (parler, ou `say`, pendant l'écoute)
     static func runSelfTestIfRequested(app: AppModel) {
@@ -78,6 +91,35 @@ enum Snapshots {
         guard let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds) else { return }
         host.cacheDisplay(in: host.bounds, to: rep)
         try? rep.representation(using: .png, properties: [:])?.write(to: url)
+    }
+}
+/// Logo : les vagues de l'indicateur dans un carré arrondi noir avec halo violet.
+struct AppIconArt: View {
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 185, style: .continuous)
+        ZStack {
+            shape
+                .fill(LinearGradient(colors: [Color(red: 0.09, green: 0.09, blue: 0.12),
+                                              Color(red: 0.02, green: 0.02, blue: 0.03)],
+                                     startPoint: .top, endPoint: .bottom))
+                .overlay {
+                    Canvas { ctx, size in
+                        WaveRenderer.drawHalo(in: &ctx, size: size, level: 0.75)
+                    }
+                    .clipShape(shape)
+                }
+                .overlay {
+                    Canvas { ctx, size in
+                        WaveRenderer.draw(in: &ctx, size: size, time: 1.3, level: 0.95)
+                        WaveRenderer.draw(in: &ctx, size: size, time: 4.1, level: 0.55)
+                    }
+                    .frame(width: 720, height: 380)
+                }
+                .overlay(shape.strokeBorder(.white.opacity(0.09), lineWidth: 4))
+                .frame(width: 824, height: 824)
+                .shadow(color: .black.opacity(0.35), radius: 20, y: 12)
+        }
+        .frame(width: 1024, height: 1024)
     }
 }
 #endif

@@ -100,7 +100,7 @@ final class AppModel {
         let args = CommandLine.arguments
         isFirstLaunch = !defaults.bool(forKey: "onboarded") || args.contains("--first-launch")
         // Les modes Debug (captures, autotest) partagent les réglages : ils ne consomment pas l'accueil.
-        if !args.contains("--snapshots") && !args.contains("--selftest") {
+        if !args.contains("--snapshots") && !args.contains("--selftest") && !args.contains("--icon") {
             defaults.set(true, forKey: "onboarded")
         }
         showHUD = defaults.bool(forKey: "showHUD")
@@ -113,7 +113,8 @@ final class AppModel {
 
         refreshInstalled()
         setUpShortcuts()
-        if !CommandLine.arguments.contains("--snapshots") { Task { await loadActiveModel() } }
+        let renderOnly = CommandLine.arguments.contains("--snapshots") || CommandLine.arguments.contains("--icon")
+        if !renderOnly { Task { await loadActiveModel() } }
         let bundle = Bundle.main.bundlePath
         DiagnosticLog.write("démarrage \(bundle) envoiTouches=\(TextInserter.canPostEvents) axTrusted=\(AXIsProcessTrusted())")
     }

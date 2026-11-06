@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/brand/icon-256.png" width="128" alt="WisperKit icon">
+
 # WisperKit
 
 **Private, on-device dictation for macOS — press a shortcut, speak, and your words appear wherever your cursor is.**

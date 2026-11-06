@@ -50,10 +50,9 @@ struct MenuBarView: View {
 
     private var header: some View {
         HStack(spacing: 10) {
-            ZStack {
-                Circle().fill(Theme.popoverStroke).frame(width: 30, height: 30)
-                Image(systemName: "waveform").font(.system(size: 13, weight: .medium)).foregroundStyle(Theme.text)
-            }
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 34, height: 34)
             VStack(alignment: .leading, spacing: 1) {
                 Text("WisperKit").font(.system(size: 13)).foregroundStyle(Theme.text)
                 Text(app.statusLine).font(.system(size: 11)).foregroundStyle(statusColor).lineLimit(2)

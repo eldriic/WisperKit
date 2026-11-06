@@ -12,6 +12,7 @@ struct WisperKitApp: App {
         #if DEBUG
         Snapshots.runIfRequested(app: model)
         Snapshots.runSelfTestIfRequested(app: model)
+        Snapshots.renderIconIfRequested()
         #endif
     }
 

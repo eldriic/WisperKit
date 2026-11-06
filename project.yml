@@ -38,6 +38,7 @@ targets:
         INFOPLIST_KEY_LSUIElement: YES
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "WisperKit enregistre ta voix pour la transcrire localement. Rien ne quitte le Mac."
         INFOPLIST_KEY_CFBundleDisplayName: WisperKit
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.productivity
         # Pas de sandbox : l'envoi de ⌘V vers d'autres apps (CGEvent) y est interdit.
         ENABLE_APP_SANDBOX: NO
