@@ -13,7 +13,7 @@ public final class DictationController {
     }
 
     public enum Event: Sendable {
-        case started, stopped, delivered(pasted: Bool), cancelled, failed
+        case started, stopped, delivered(DeliveryResult), cancelled, failed
     }
 
     public private(set) var state: State = .idle
@@ -22,6 +22,7 @@ public final class DictationController {
     // Réglages appliqués à chaque dictée (alimentés par l'app).
     public var language = "fr"
     public var autoPaste = true
+    public var insertionMethod: InsertionMethod = .paste
     public var restoreClipboard = true
     /// Dictées plus courtes ignorées (appui accidentel).
     public var minimumDuration: Double = 0.3
@@ -121,8 +122,9 @@ public final class DictationController {
             return
         }
         lastText = text
-        let pasted = output.deliver(text, autoPaste: autoPaste, restoreClipboard: restoreClipboard)
-        onEvent?(.delivered(pasted: pasted))
+        let result = output.deliver(text, autoInsert: autoPaste, method: insertionMethod,
+                                    restoreClipboard: restoreClipboard)
+        onEvent?(.delivered(result))
     }
 
     private func fail(_ error: Error) {

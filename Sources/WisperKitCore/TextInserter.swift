@@ -2,21 +2,39 @@ import AppKit
 import ApplicationServices
 import Carbon.HIToolbox
 
+/// Façon d'écrire le texte dans l'app au premier plan.
+public enum InsertionMethod: String, CaseIterable, Sendable {
+    /// Presse-papiers + ⌘V (le plus rapide ; presse-papiers restauré ensuite).
+    case paste
+    /// Frappe simulée caractère par caractère : le presse-papiers n'est jamais touché.
+    case type
+}
+
+/// Ce qu'il est advenu du texte transcrit.
+public enum DeliveryResult: Equatable, Sendable {
+    /// Collé (⌘V) au curseur.
+    case pasted
+    /// Tapé au curseur, sans passer par le presse-papiers.
+    case typed
+    /// Laissé dans le presse-papiers seulement (insertion désactivée ou refusée).
+    case clipboardOnly
+    /// Rien n'a été inséré ni copié (mode frappe sans autorisation Accessibilité).
+    case notInserted
+}
+
 /// Destination du texte transcrit (permet de tester le contrôleur).
 @MainActor
 public protocol TextOutput: AnyObject {
-    /// Renvoie `true` si le texte a été collé au curseur, `false` s'il est
-    /// seulement resté dans le presse-papiers.
-    func deliver(_ text: String, autoPaste: Bool, restoreClipboard: Bool) -> Bool
+    func deliver(_ text: String, autoInsert: Bool, method: InsertionMethod, restoreClipboard: Bool) -> DeliveryResult
 }
 
-/// Met le texte dans le presse-papiers puis simule ⌘V dans l'app au premier plan.
+/// Écrit le texte dans l'app au premier plan.
 /// Diagnostic : ~/Library/Logs/WisperKit/wisperkit.log
 @MainActor
 public final class TextInserter: TextOutput {
     public init() {}
 
-    /// Le collage n'a besoin que du droit d'envoyer des événements clavier
+    /// Coller ou taper n'a besoin que du droit d'envoyer des événements clavier
     /// (rangé par macOS dans Accessibilité) ; AXIsProcessTrusted le couvre aussi.
     public static var hasAccessibility: Bool { canPostEvents || AXIsProcessTrusted() }
     public static var canPostEvents: Bool { CGPreflightPostEventAccess() }
@@ -28,37 +46,65 @@ public final class TextInserter: TextOutput {
         _ = AXIsProcessTrustedWithOptions([key: true] as CFDictionary)
     }
 
-    public func deliver(_ text: String, autoPaste: Bool, restoreClipboard: Bool) -> Bool {
-        let pb = NSPasteboard.general
-        let saved = restoreClipboard ? Self.snapshot(pb) : nil
-
-        pb.clearContents()
-        pb.setString(text, forType: .string)
-
+    public func deliver(_ text: String, autoInsert: Bool, method: InsertionMethod,
+                        restoreClipboard: Bool) -> DeliveryResult {
         let front = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "?"
         let post = Self.canPostEvents, ax = AXIsProcessTrusted()
         let trusted = post || ax
-        let secure = IsSecureEventInputEnabled()
-        DiagnosticLog.write("livraison \(text.count) car. → app=\(front) autoPaste=\(autoPaste) envoiTouches=\(post) axTrusted=\(ax) saisieSécurisée=\(secure)")
+        DiagnosticLog.write("livraison \(text.count) car. → app=\(front) méthode=\(method.rawValue) auto=\(autoInsert) "
+                            + "envoiTouches=\(post) axTrusted=\(ax) saisieSécurisée=\(IsSecureEventInputEnabled())")
 
-        guard autoPaste else { return false }
-        guard trusted else {
-            DiagnosticLog.write("collage impossible : WisperKit n'est pas autorisé dans Accessibilité")
-            return false
+        switch method {
+        case .type:
+            // Jamais de presse-papiers dans ce mode, même en cas d'échec.
+            guard autoInsert else { return .notInserted }
+            guard trusted else {
+                DiagnosticLog.write("frappe impossible : WisperKit n'est pas autorisé dans Accessibilité")
+                return .notInserted
+            }
+            Task { @MainActor in
+                await Self.type(text)
+                DiagnosticLog.write("texte tapé dans \(front)")
+            }
+            return .typed
+
+        case .paste:
+            let pb = NSPasteboard.general
+            let saved = restoreClipboard ? Self.snapshot(pb) : nil
+            Self.write(text, to: pb, transient: autoInsert && trusted && restoreClipboard)
+
+            guard autoInsert else { return .clipboardOnly }
+            guard trusted else {
+                DiagnosticLog.write("collage impossible : WisperKit n'est pas autorisé dans Accessibilité")
+                return .clipboardOnly
+            }
+            let count = pb.changeCount
+            Task { @MainActor in
+                await Self.pressCommandV()
+                DiagnosticLog.write("⌘V envoyé à \(front)")
+                guard let saved else { return }
+                // Laisse à l'app cible (Chromium/Electron lit le presse-papiers en asynchrone)
+                // le temps de coller avant de restaurer l'ancien contenu.
+                try? await Task.sleep(for: .milliseconds(1000))
+                guard pb.changeCount == count else { return } // l'utilisateur a recopié entre-temps
+                pb.clearContents()
+                pb.writeObjects(saved)
+            }
+            return .pasted
         }
-        let count = pb.changeCount
-        Task { @MainActor in
-            await Self.pressCommandV()
-            DiagnosticLog.write("⌘V envoyé à \(front)")
-            guard let saved else { return }
-            // Laisse à l'app cible (Chromium/Electron lit le presse-papiers en asynchrone)
-            // le temps de coller avant de restaurer l'ancien contenu.
-            try? await Task.sleep(for: .milliseconds(1000))
-            guard pb.changeCount == count else { return } // l'utilisateur a recopié entre-temps
-            pb.clearContents()
-            pb.writeObjects(saved)
+    }
+
+    /// Copie le texte ; `transient` le signale aux gestionnaires de presse-papiers
+    /// (convention nspasteboard.org) pour qu'ils ne l'enregistrent pas dans leur historique.
+    public static func write(_ text: String, to pb: NSPasteboard, transient: Bool = false) {
+        pb.clearContents()
+        let item = NSPasteboardItem()
+        item.setString(text, forType: .string)
+        if transient {
+            item.setData(Data(), forType: NSPasteboard.PasteboardType("org.nspasteboard.TransientType"))
+            item.setData(Data(), forType: NSPasteboard.PasteboardType("org.nspasteboard.AutoGeneratedType"))
         }
-        return true
+        pb.writeObjects([item])
     }
 
     private static func snapshot(_ pb: NSPasteboard) -> [NSPasteboardItem] {
@@ -87,5 +133,35 @@ public final class TextInserter: TextOutput {
             event?.post(tap: .cgSessionEventTap)
             try? await Task.sleep(for: .milliseconds(12))
         }
+    }
+
+    /// Frappe Unicode par petits paquets de caractères (indépendant de la disposition
+    /// du clavier). Les modificateurs sont forcés à zéro : si ⌃⌥ sont encore enfoncés
+    /// (mode « maintenir »), les caractères ne deviennent pas des raccourcis.
+    static func type(_ text: String) async {
+        let source = CGEventSource(stateID: .hidSystemState)
+        for chunk in chunks(of: text, size: 16) {
+            let units = Array(chunk.utf16)
+            for down in [true, false] {
+                let event = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: down)
+                event?.flags = []
+                units.withUnsafeBufferPointer { buf in
+                    event?.keyboardSetUnicodeString(stringLength: buf.count, unicodeString: buf.baseAddress)
+                }
+                event?.post(tap: .cgSessionEventTap)
+            }
+            try? await Task.sleep(for: .milliseconds(8))
+        }
+    }
+
+    /// Découpe par caractères (jamais au milieu d'un emoji ou d'une lettre accentuée composée).
+    static func chunks(of text: String, size: Int) -> [String] {
+        var out: [String] = [], current = ""
+        for character in text {
+            current.append(character)
+            if current.count == size { out.append(current); current = "" }
+        }
+        if !current.isEmpty { out.append(current) }
+        return out
     }
 }

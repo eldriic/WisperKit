@@ -8,13 +8,13 @@ public struct WhisperModel: Identifiable, Hashable, Sendable {
     public let size: String
 
     public static let turbo = WhisperModel(id: "openai_whisper-large-v3-v20240930_turbo", title: "large-v3-turbo",
-                                           detail: "Meilleur compromis précision / vitesse", size: "1,6 Go")
+                                           detail: "Best accuracy / speed trade-off", size: "1.6 GB")
     public static let large = WhisperModel(id: "openai_whisper-large-v3", title: "large-v3",
-                                           detail: "Le plus précis, plus lent", size: "3 Go")
+                                           detail: "Most accurate, slower", size: "3 GB")
     public static let small = WhisperModel(id: "openai_whisper-small", title: "small",
-                                           detail: "Rapide, moins précis sur le jargon", size: "480 Mo")
+                                           detail: "Fast, less accurate on jargon", size: "480 MB")
     public static let base = WhisperModel(id: "openai_whisper-base", title: "base",
-                                          detail: "Très rapide, pour tester", size: "140 Mo")
+                                          detail: "Very fast, for testing", size: "140 MB")
 
     public static let all: [WhisperModel] = [.turbo, .large, .small, .base]
     public static let `default` = WhisperModel.turbo

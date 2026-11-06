@@ -59,6 +59,7 @@ enum Snapshots {
             // --paste <bundle id> : colle dans cette app seulement (remise au premier plan avant).
             let target = args.firstIndex(of: "--paste").flatMap { $0 + 1 < args.count ? args[$0 + 1] : nil }
             app.dictation.autoPaste = false
+            app.dictation.insertionMethod = args.contains("--type") ? .type : .paste
             print("SELFTEST écoute \(seconds) s"); fflush(stdout)
             app.dictation.start()
             try? await Task.sleep(for: .seconds(seconds))

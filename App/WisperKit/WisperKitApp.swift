@@ -24,7 +24,7 @@ struct WisperKitApp: App {
         }
         .menuBarExtraStyle(.window)
 
-        Window("Réglages WisperKit", id: Self.settingsWindowID) {
+        Window("WisperKit Settings", id: Self.settingsWindowID) {
             SettingsView(initialPage: app.isFirstLaunch ? .permissions : .general)
                 .environment(app)
                 .onAppear { NSApp.activate() }

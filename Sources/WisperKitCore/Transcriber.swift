@@ -11,7 +11,7 @@ public enum TranscriberError: LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .notLoaded: "Le modèle n'est pas encore chargé."
+        case .notLoaded: "The model is not loaded yet."
         }
     }
 }

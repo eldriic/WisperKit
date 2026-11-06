@@ -31,6 +31,8 @@ No account, no subscription, no audio ever leaves your Mac.
 - **Toggle or push-to-talk** — press once to start and once to stop, or hold the shortcut while you speak. <kbd>Esc</kbd> cancels.
 - **Live indicator** — a small floating pill with waves that follow your voice, a timer while listening and a distinct state while transcribing.
 - **Multiple models** — switch between `large-v3-turbo`, `large-v3`, `small` and `base` from the settings, downloads included.
+- **Clipboard-free mode** — optionally types the text key by key so your clipboard is never touched (pasted text is also flagged so clipboard managers skip it).
+- **English and French interface** — switch instantly in the settings.
 - **Native and light** — SwiftUI menu bar app, no Dock icon, no Python, no Electron.
 
 <p align="center">
@@ -38,9 +40,6 @@ No account, no subscription, no audio ever leaves your Mac.
   &nbsp;
   <img src="docs/images/settings-general.png" width="520" alt="Settings">
 </p>
-
-> [!NOTE]
-> The interface is currently in French. English localization is welcome — see [Contributing](#contributing).
 
 ## Install
 
@@ -72,7 +71,7 @@ Updates: `brew upgrade --cask wisperkit`.
 A welcome window walks you through setup:
 
 1. **Microphone** — allow it when macOS asks.
-2. **Accessibility** — needed to type the text into other apps. Click **Ouvrir les Réglages** and enable WisperKit. Without it, WisperKit still works but only copies the text to your clipboard.
+2. **Accessibility** — needed to type the text into other apps. Click **Open Settings** and enable WisperKit. Without it, WisperKit still works but only copies the text to your clipboard.
 3. **Model** — `large-v3-turbo` (~1.6 GB) downloads once from Hugging Face; progress is shown in the menu.
 4. Put your cursor anywhere, press <kbd>⌃</kbd> <kbd>⌥</kbd> <kbd>D</kbd>, speak, press it again. Done.
 
@@ -82,12 +81,12 @@ A welcome window walks you through setup:
 
 | Action | Default |
 | --- | --- |
-| Start / stop dictation | <kbd>⌃</kbd> <kbd>⌥</kbd> <kbd>D</kbd> (change it in **Réglages → Clavier**) |
+| Start / stop dictation | <kbd>⌃</kbd> <kbd>⌥</kbd> <kbd>D</kbd> (change it in **Settings → Keyboard**) |
 | Cancel while listening | <kbd>Esc</kbd> |
-| Push-to-talk | **Réglages → Clavier → Mode → Maintenir** |
-| Copy the last dictation | Menu bar → **Dernière dictée** |
+| Push-to-talk | **Settings → Keyboard → Mode → Hold** |
+| Copy the last dictation | Menu bar → **Last dictation** |
 
-Settings cover auto-paste, clipboard restore, language (French, English or auto-detect), sounds, the on-screen indicator and launch at login.
+Settings cover the interface language (English or French), auto-insert, clipboard-free typing, clipboard restore, dictation language (English, French or auto-detect), sounds, the on-screen indicator and launch at login.
 
 ### Models
 
@@ -118,7 +117,7 @@ tccutil reset Accessibility com.eldriic.wisperkit
 tccutil reset PostEvent com.eldriic.wisperkit
 ```
 
-Then relaunch WisperKit and enable it again from **Réglages → Autorisations**.
+Then relaunch WisperKit and enable it again from **Settings → Permissions**.
 A diagnostic log is written to `~/Library/Logs/WisperKit/wisperkit.log` (`envoiTouches=` / `axTrusted=` show the permission state at each dictation).
 
 </details>
@@ -126,14 +125,14 @@ A diagnostic log is written to `~/Library/Logs/WisperKit/wisperkit.log` (`envoiT
 <details>
 <summary><b>Nothing happens when I press the shortcut</b></summary>
 
-Check the menu bar icon: the model may still be downloading or loading. Another app may also use <kbd>⌃</kbd> <kbd>⌥</kbd> <kbd>D</kbd> — pick another shortcut in **Réglages → Clavier**.
+Check the menu bar icon: the model may still be downloading or loading. Another app may also use <kbd>⌃</kbd> <kbd>⌥</kbd> <kbd>D</kbd> — pick another shortcut in **Settings → Keyboard**.
 
 </details>
 
 <details>
 <summary><b>Some words are wrong</b></summary>
 
-Force the language in **Réglages → Général → Langue** instead of auto-detect, and prefer `large-v3-turbo` or `large-v3`. A good microphone close to your mouth helps a lot.
+Force the language in **Settings → General → Dictation language** instead of auto-detect, and prefer `large-v3-turbo` or `large-v3`. A good microphone close to your mouth helps a lot.
 
 </details>
 
@@ -173,7 +172,7 @@ Debug builds also accept `--snapshots <dir>` (renders every screen to PNG) and `
 
 ## Contributing
 
-Issues and pull requests are welcome — bug reports, English localization, new features. Please run `swift test` before opening a PR.
+Issues and pull requests are welcome — bug reports, new translations (add a `<lang>.lproj/Localizable.strings`), new features. Please run `swift test` before opening a PR.
 
 ## About this project
 
@@ -195,6 +194,6 @@ WisperKit was **vibe-coded**: designed and built through conversation with an AI
 
 **WisperKit** est une app de dictée pour macOS, 100 % locale : un raccourci (<kbd>⌃</kbd> <kbd>⌥</kbd> <kbd>D</kbd>), tu parles, et le texte s'écrit tout seul là où se trouve ton curseur. La transcription utilise Whisper sur la puce de ton Mac : aucun son ne quitte l'ordinateur.
 
-**Installation** : `brew install --cask eldriic/tap/wisperkit`, ou télécharge le DMG de la [dernière version](https://github.com/eldriic/WisperKit/releases/latest), glisse l'app dans Applications, puis au premier lancement va dans **Réglages Système → Confidentialité et sécurité → Ouvrir quand même**. Une fenêtre d'accueil te guide ensuite : micro, Accessibilité (pour coller au curseur), téléchargement du modèle (~1,6 Go, une seule fois).
+**Installation** : `brew install --cask eldriic/tap/wisperkit`, ou télécharge le DMG de la [dernière version](https://github.com/eldriic/WisperKit/releases/latest), glisse l'app dans Applications, puis au premier lancement va dans **Réglages Système → Confidentialité et sécurité → Ouvrir quand même**. Une fenêtre d'accueil te guide ensuite : micro, Accessibilité (pour écrire au curseur), téléchargement du modèle (~1,6 Go, une seule fois). L'interface est en anglais par défaut : passe-la en français dans **Settings → General → Interface language**.
 
 Projet *vibe-codé* (construit en dialoguant avec un assistant de code IA), partagé tel quel sous licence MIT.

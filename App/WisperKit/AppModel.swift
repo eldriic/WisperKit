@@ -15,10 +15,10 @@ extension KeyboardShortcuts.Name {
 enum TriggerMode: String, CaseIterable, Identifiable {
     case toggle, hold
     var id: String { rawValue }
-    var label: String { self == .toggle ? "Bascule" : "Maintenir" }
-    var detail: String {
-        self == .toggle ? "Un appui pour démarrer, un appui pour arrêter."
-                        : "Parle en gardant le raccourci enfoncé, relâche pour transcrire."
+    @MainActor var label: String { self == .toggle ? L("Toggle") : L("Hold") }
+    @MainActor var detail: String {
+        self == .toggle ? L("Press once to start, press again to stop.")
+                        : L("Speak while holding the shortcut, release to transcribe.")
     }
 }
 
@@ -35,7 +35,7 @@ enum ModelState: Equatable {
 @Observable
 final class AppModel {
     static let languages: [(id: String, label: String)] = [
-        ("fr", "Français"), ("en", "Anglais"), ("auto", "Détection auto"),
+        ("en", "English"), ("fr", "French"), ("auto", "Auto-detect"),
     ]
 
     let dictation: DictationController
@@ -64,6 +64,17 @@ final class AppModel {
         didSet { defaults.set(restoreClipboard, forKey: "restoreClipboard"); dictation.restoreClipboard = restoreClipboard }
     }
     var sounds: Bool { didSet { defaults.set(sounds, forKey: "sounds") } }
+    /// Mode frappe : le texte est tapé touche par touche, le presse-papiers n'est jamais utilisé.
+    var neverUseClipboard: Bool {
+        didSet {
+            defaults.set(neverUseClipboard, forKey: "neverUseClipboard")
+            dictation.insertionMethod = neverUseClipboard ? .type : .paste
+        }
+    }
+    var interfaceLanguage: AppLanguage {
+        get { Localizer.shared.language }
+        set { Localizer.shared.language = newValue }
+    }
     var mode: TriggerMode { didSet { defaults.set(mode.rawValue, forKey: "mode") } }
     var escapeCancels: Bool { didSet { defaults.set(escapeCancels, forKey: "escapeCancels") } }
     var showHUD: Bool { didSet { defaults.set(showHUD, forKey: "showHUD") } }
@@ -88,6 +99,7 @@ final class AppModel {
         defaults.register(defaults: [
             "modelID": WhisperModel.default.id, "language": "fr", "autoPaste": true,
             "restoreClipboard": true, "sounds": true, "mode": TriggerMode.toggle.rawValue, "escapeCancels": true,
+            "neverUseClipboard": false,
             "showHUD": true,
         ])
         modelID = defaults.string(forKey: "modelID") ?? WhisperModel.default.id
@@ -95,6 +107,7 @@ final class AppModel {
         autoPaste = defaults.bool(forKey: "autoPaste")
         restoreClipboard = defaults.bool(forKey: "restoreClipboard")
         sounds = defaults.bool(forKey: "sounds")
+        neverUseClipboard = defaults.bool(forKey: "neverUseClipboard")
         mode = TriggerMode(rawValue: defaults.string(forKey: "mode") ?? "") ?? .toggle
         escapeCancels = defaults.bool(forKey: "escapeCancels")
         let args = CommandLine.arguments
@@ -109,6 +122,7 @@ final class AppModel {
         dictation.language = language
         dictation.autoPaste = autoPaste
         dictation.restoreClipboard = restoreClipboard
+        dictation.insertionMethod = neverUseClipboard ? .type : .paste
         dictation.onEvent = { [weak self] in self?.handle($0) }
 
         refreshInstalled()
@@ -157,20 +171,20 @@ final class AppModel {
         case .stopped:
             KeyboardShortcuts.disable(.cancelDictation)
             play("Pop")
-        case .delivered(let pasted):
-            if pasted || !autoPaste {
-                pasteBlocked = false
-                hud.hide()
-            } else {
-                // Collage demandé mais refusé par macOS : le texte est dans le presse-papiers.
-                pasteBlocked = true
-                hud.flash("Copié · ⌘V pour coller")
-                if !askedAccessibility {
-                    askedAccessibility = true
-                    TextInserter.requestAccessibility()
-                }
+        case .delivered(let result):
+            let blocked = autoPaste && (result == .clipboardOnly || result == .notInserted)
+            pasteBlocked = blocked
+            switch result {
+            case .pasted, .typed: hud.hide()
+            case .clipboardOnly: autoPaste ? hud.flash(L("Copied · ⌘V to paste")) : hud.hide()
+            case .notInserted: autoPaste ? hud.flash(L("Accessibility required to type the text")) : hud.hide()
             }
-            DiagnosticLog.write("texte livré, collé=\(pasted) accessibilité=\(TextInserter.hasAccessibility)")
+            // Insertion demandée mais refusée par macOS : on propose l'autorisation une fois.
+            if blocked && !askedAccessibility {
+                askedAccessibility = true
+                TextInserter.requestAccessibility()
+            }
+            DiagnosticLog.write("texte livré, résultat=\(result) accessibilité=\(TextInserter.hasAccessibility)")
             play("Glass")
         case .cancelled:
             hud.hide()
@@ -270,18 +284,18 @@ final class AppModel {
 
     var statusLine: String {
         switch dictation.state {
-        case .recording: return "Écoute…"
-        case .transcribing: return "Transcription…"
-        case .failed(let message): return message
+        case .recording: return L("Listening…")
+        case .transcribing: return L("Transcribing…")
+        case .failed(let message): return L(message)
         case .idle: break
         }
         switch modelState {
-        case .missing: return "Aucun modèle"
-        case .downloading(let f): return "Téléchargement \(Int(f * 100)) %"
-        case .loading: return "Chargement du modèle…"
+        case .missing: return L("No model")
+        case .downloading(let f): return L("Downloading %d%%", Int(f * 100))
+        case .loading: return L("Loading model…")
         case .ready:
-            if pasteBlocked && !TextInserter.hasAccessibility { return "Collage auto bloqué : autorise l'Accessibilité" }
-            return "Prêt · \(activeModel.title)"
+            if pasteBlocked && !TextInserter.hasAccessibility { return L("Auto-insert blocked: allow Accessibility") }
+            return L("Ready · %@", activeModel.title)
         case .failed(let message): return message
         }
     }

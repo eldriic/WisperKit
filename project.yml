@@ -8,6 +8,7 @@ options:
   deploymentTarget:
     macOS: "15.0"
   createIntermediateGroups: true
+  developmentLanguage: en
 
 packages:
   WisperKitCore:
@@ -36,7 +37,7 @@ targets:
         SWIFT_VERSION: "6.0"
         # App de barre de menus : pas d'icône dans le Dock.
         INFOPLIST_KEY_LSUIElement: YES
-        INFOPLIST_KEY_NSMicrophoneUsageDescription: "WisperKit enregistre ta voix pour la transcrire localement. Rien ne quitte le Mac."
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "WisperKit records your voice to transcribe it on this Mac. Nothing leaves your computer."
         INFOPLIST_KEY_CFBundleDisplayName: WisperKit
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.productivity

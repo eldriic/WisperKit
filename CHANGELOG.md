@@ -9,7 +9,9 @@ First public release.
 ### Added
 - Menu bar app with a global dictation shortcut (<kbd>⌃⌥D</kbd> by default), toggle or push-to-talk, <kbd>Esc</kbd> to cancel.
 - On-device transcription with Whisper through WhisperKit (Core ML / Neural Engine); `large-v3-turbo` by default, `large-v3`, `small` and `base` available.
-- Auto-paste at the cursor in any app (native, Chromium and Electron), with clipboard restore.
+- Auto-insert at the cursor in any app (native, Chromium and Electron), with clipboard restore; pasted text is flagged as transient for clipboard managers.
+- "Never use the clipboard" mode that types the text key by key.
+- English interface by default, French available, switchable instantly from the settings.
 - Floating recording indicator: voice-reactive waves, timer, transcribing state.
 - Settings window: general, model downloads, keyboard, permissions, and a first-launch welcome guide.
 - Diagnostic log at `~/Library/Logs/WisperKit/wisperkit.log`.

@@ -20,8 +20,8 @@ public enum AudioRecorderError: LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .noInputDevice: "Aucun micro disponible."
-        case .converterUnavailable: "Format audio du micro non pris en charge."
+        case .noInputDevice: "No microphone available."
+        case .converterUnavailable: "Unsupported microphone audio format."
         }
     }
 }

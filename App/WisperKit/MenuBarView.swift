@@ -14,7 +14,7 @@ struct MenuBarView: View {
             header
             separator
             MenuRow(icon: app.dictation.isRecording ? "stop.circle" : "mic",
-                    title: app.dictation.isRecording ? "Arrêter la dictée" : "Démarrer la dictée",
+                    title: app.dictation.isRecording ? L("Stop dictation") : L("Start dictation"),
                     shortcut: KeyboardShortcuts.getShortcut(for: .toggleDictation)?.description,
                     enabled: app.canDictate || app.dictation.isRecording) {
                 dismiss()
@@ -22,22 +22,22 @@ struct MenuBarView: View {
                 Task { try? await Task.sleep(for: .milliseconds(150)); app.toggleDictation() }
             }
             if let last = app.dictation.lastText {
-                MenuRow(icon: "clock.arrow.circlepath", title: "Dernière dictée", subtitle: last,
+                MenuRow(icon: "clock.arrow.circlepath", title: L("Last dictation"), subtitle: last,
                         trailingIcon: "doc.on.doc") {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(last, forType: .string)
                     dismiss()
                 }
-                .help("Copier la dernière dictée")
+                .help(L("Copy the last dictation"))
             }
             separator
-            MenuRow(icon: "gearshape", title: "Réglages…", shortcut: "⌘,") {
+            MenuRow(icon: "gearshape", title: L("Settings…"), shortcut: "⌘,") {
                 dismiss()
                 openWindow(id: WisperKitApp.settingsWindowID)
                 NSApp.activate()
             }
             .keyboardShortcut(",", modifiers: .command)
-            MenuRow(icon: "rectangle.portrait.and.arrow.right", title: "Quitter", shortcut: "⌘Q") {
+            MenuRow(icon: "rectangle.portrait.and.arrow.right", title: L("Quit"), shortcut: "⌘Q") {
                 NSApp.terminate(nil)
             }
             .keyboardShortcut("q", modifiers: .command)

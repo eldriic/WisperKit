@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Testing
 @testable import WisperKitCore
@@ -34,11 +35,14 @@ struct FakeTranscriber: Transcribing {
 @MainActor
 final class FakeOutput: TextOutput {
     var delivered: [String] = []
+    var methods: [InsertionMethod] = []
     var pastes = true
 
-    func deliver(_ text: String, autoPaste: Bool, restoreClipboard: Bool) -> Bool {
+    func deliver(_ text: String, autoInsert: Bool, method: InsertionMethod, restoreClipboard: Bool) -> DeliveryResult {
         delivered.append(text)
-        return autoPaste && pastes
+        methods.append(method)
+        guard autoInsert && pastes else { return method == .type ? .notInserted : .clipboardOnly }
+        return method == .type ? .typed : .pasted
     }
 }
 
@@ -63,7 +67,7 @@ struct Boom: LocalizedError { var errorDescription: String? { "boum" } }
         #expect(c.state == .idle)
         #expect(out.delivered == ["Bonjour le monde."])
         #expect(c.lastText == "Bonjour le monde.")
-        #expect(events == ["started", "stopped", "delivered(pasted: true)"])
+        #expect(events == ["started", "stopped", "delivered(WisperKitCore.DeliveryResult.pasted)"])
     }
 
     @Test func tooShortRecordingIsIgnored() async {
@@ -110,7 +114,7 @@ struct Boom: LocalizedError { var errorDescription: String? { "boum" } }
         let rec = FakeRecorder(); rec.startError = AudioRecorderError.noInputDevice
         let c = DictationController(recorder: rec, transcriber: FakeTranscriber(), output: FakeOutput())
         c.start()
-        #expect(c.state == .failed("Aucun micro disponible."))
+        #expect(c.state == .failed("No microphone available."))
     }
 
     @Test func hallucinationOnSilenceIsNotPasted() async {
@@ -198,5 +202,35 @@ struct IntegrationTests {
             let l = SampleBuffer.normalizedLevel($0)
             #expect(l > 0.2 && l < 0.8)
         }
+    }
+}
+
+@MainActor
+@Suite struct InsertionTests {
+    @Test func typeModeIsPassedToOutput() async {
+        let out = FakeOutput()
+        let c = DictationController(recorder: FakeRecorder(), transcriber: FakeTranscriber(), output: out)
+        c.insertionMethod = .type
+        var result: DeliveryResult?
+        c.onEvent = { if case .delivered(let r) = $0 { result = r } }
+        c.start(); c.stop()
+        await c.waitForCompletion()
+        #expect(out.methods == [.type])
+        #expect(result == .typed)
+    }
+
+    @Test func chunksNeverSplitCharacters() {
+        let text = "Café 👩‍💻 déjà vu, ça marche ?"
+        let parts = TextInserter.chunks(of: text, size: 4)
+        #expect(parts.joined() == text)
+        #expect(parts.allSatisfy { $0.count <= 4 })
+    }
+
+    @Test func transientClipboardIsMarked() {
+        let pb = NSPasteboard(name: NSPasteboard.Name("wk-test-\(UUID().uuidString)"))
+        TextInserter.write("secret", to: pb, transient: true)
+        #expect(pb.string(forType: .string) == "secret")
+        #expect(pb.types?.contains(NSPasteboard.PasteboardType("org.nspasteboard.TransientType")) == true)
+        pb.releaseGlobally()
     }
 }

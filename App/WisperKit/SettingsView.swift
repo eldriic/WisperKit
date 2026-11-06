@@ -7,12 +7,12 @@ enum SettingsPage: String, CaseIterable, Identifiable {
     case general, model, keyboard, permissions
     var id: String { rawValue }
 
-    var title: String {
+    @MainActor var title: String {
         switch self {
-        case .general: "Général"
-        case .model: "Modèle"
-        case .keyboard: "Clavier"
-        case .permissions: "Autorisations"
+        case .general: L("General")
+        case .model: L("Model")
+        case .keyboard: L("Keyboard")
+        case .permissions: L("Permissions")
         }
     }
 
@@ -60,7 +60,7 @@ struct SettingsView: View {
 
     private var sidebar: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("Réglages").font(.system(size: 11)).foregroundStyle(Theme.secondary)
+            Text(L("Settings")).font(.system(size: 11)).foregroundStyle(Theme.secondary)
                 .padding(.horizontal, 10).padding(.bottom, 6)
             ForEach(SettingsPage.allCases) { item in
                 Button { page = item } label: {
@@ -95,33 +95,49 @@ struct GeneralPage: View {
         @Bindable var app = app
         VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 0) {
-                SectionTitle(text: "Dictée")
+                SectionTitle(text: "WisperKit")
                 SettingsCard {
-                    SettingsRow(title: "Collage automatique",
-                                description: "Tape le texte dans l'app au premier plan dès la fin de la transcription.") {
+                    SettingsRow(title: L("Interface language"),
+                                description: L("Language of WisperKit's menus and settings.")) {
+                        PillMenu(selection: $app.interfaceLanguage,
+                                 options: AppLanguage.allCases.map { ($0, $0.nativeName) })
+                    }
+                }
+            }
+            VStack(alignment: .leading, spacing: 0) {
+                SectionTitle(text: L("Dictation"))
+                SettingsCard {
+                    SettingsRow(title: L("Insert automatically"),
+                                description: L("Writes the text into the frontmost app as soon as it is transcribed.")) {
                         BlueSwitch(isOn: $app.autoPaste)
                     }
-                    SettingsRow(title: "Restaurer le presse-papiers",
-                                description: "Remet ce que tu avais copié avant la dictée.") {
-                        BlueSwitch(isOn: $app.restoreClipboard)
+                    SettingsRow(title: L("Never use the clipboard"),
+                                description: L("Types the text key by key instead of pasting it. A bit slower; your clipboard is never touched.")) {
+                        BlueSwitch(isOn: $app.neverUseClipboard)
                     }
-                    SettingsRow(title: "Langue", description: "Forcer la langue évite les erreurs de détection.") {
-                        PillMenu(selection: $app.language, options: AppModel.languages.map { ($0.id, $0.label) })
+                    if !app.neverUseClipboard {
+                        SettingsRow(title: L("Restore clipboard"),
+                                    description: L("Puts back what you had copied before dictating.")) {
+                            BlueSwitch(isOn: $app.restoreClipboard)
+                        }
                     }
-                    SettingsRow(title: "Sons", description: "Signal au début et à la fin de l'écoute.") {
+                    SettingsRow(title: L("Dictation language"), description: L("Forcing the language avoids detection mistakes.")) {
+                        PillMenu(selection: $app.language, options: AppModel.languages.map { ($0.id, L($0.label)) })
+                    }
+                    SettingsRow(title: L("Sounds"), description: L("A chime when listening starts and ends.")) {
                         BlueSwitch(isOn: $app.sounds)
                     }
-                    SettingsRow(title: "Indicateur à l'écran",
-                                description: "Petites vagues au centre de l'écran pendant l'écoute et la transcription.") {
+                    SettingsRow(title: L("On-screen indicator"),
+                                description: L("Small waves in the middle of the screen while listening and transcribing.")) {
                         BlueSwitch(isOn: $app.showHUD)
                     }
                 }
             }
             VStack(alignment: .leading, spacing: 0) {
-                SectionTitle(text: "Démarrage")
+                SectionTitle(text: L("Startup"))
                 SettingsCard {
-                    SettingsRow(title: "Ouvrir à la connexion",
-                                description: app.launchError ?? "WisperKit se lance avec ta session macOS.") {
+                    SettingsRow(title: L("Open at login"),
+                                description: app.launchError ?? L("WisperKit starts with your macOS session.")) {
                         BlueSwitch(isOn: $app.launchAtLogin)
                     }
                 }
@@ -138,22 +154,22 @@ struct ModelPage: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 0) {
-                SectionTitle(text: "Modèles installés et disponibles")
+                SectionTitle(text: L("Installed and available models"))
                 SettingsCard {
                     ForEach(WhisperModel.all) { model in
-                        SettingsRow(title: model.title, description: "\(model.detail) · \(model.size)",
-                                    badge: model.id == app.modelID ? "actif" : nil) {
+                        SettingsRow(title: model.title, description: "\(L(model.detail)) · \(L(model.size))",
+                                    badge: model.id == app.modelID ? L("active") : nil) {
                             trailing(for: model)
                         }
                     }
                 }
             }
             VStack(alignment: .leading, spacing: 0) {
-                SectionTitle(text: "Stockage")
+                SectionTitle(text: L("Storage"))
                 SettingsCard {
-                    SettingsRow(title: "Dossier des modèles",
+                    SettingsRow(title: L("Models folder"),
                                 description: "~/Library/Application Support/WisperKit · \(usage)") {
-                        Button("Afficher") {
+                        Button(L("Show")) {
                             try? FileManager.default.createDirectory(at: ModelStore.baseURL, withIntermediateDirectories: true)
                             NSWorkspace.shared.activateFileViewerSelecting([ModelStore.baseURL])
                         }
@@ -177,20 +193,20 @@ struct ModelPage: View {
             case .loading: ProgressView().controlSize(.small)
             case .ready: Image(systemName: "checkmark").foregroundStyle(Theme.text)
             case .failed:
-                Button("Réessayer") { Task { await app.loadActiveModel() } }.buttonStyle(PillButtonStyle())
+                Button(L("Retry")) { Task { await app.loadActiveModel() } }.buttonStyle(PillButtonStyle())
             case .missing:
-                Button("Télécharger") { Task { await app.loadActiveModel() } }.buttonStyle(PillButtonStyle())
+                Button(L("Download")) { Task { await app.loadActiveModel() } }.buttonStyle(PillButtonStyle())
             }
         } else if let f = app.downloads[model.id] {
             progress(f)
         } else if app.installed.contains(model.id) {
             HStack(spacing: 8) {
                 Button { app.delete(model) } label: { Image(systemName: "trash") }
-                    .buttonStyle(PillButtonStyle(foreground: Theme.secondary)).help("Supprimer le modèle")
-                Button("Utiliser") { app.use(model) }.buttonStyle(PillButtonStyle())
+                    .buttonStyle(PillButtonStyle(foreground: Theme.secondary)).help(L("Delete model"))
+                Button(L("Use")) { app.use(model) }.buttonStyle(PillButtonStyle())
             }
         } else {
-            Button { app.download(model) } label: { Label("Télécharger", systemImage: "arrow.down") }
+            Button { app.download(model) } label: { Label(L("Download"), systemImage: "arrow.down") }
                 .buttonStyle(PillButtonStyle())
         }
     }
@@ -212,15 +228,15 @@ struct KeyboardPage: View {
     var body: some View {
         @Bindable var app = app
         VStack(alignment: .leading, spacing: 0) {
-            SectionTitle(text: "Raccourci")
+            SectionTitle(text: L("Shortcut"))
             SettingsCard {
-                SettingsRow(title: "Lancer / arrêter la dictée", description: "Fonctionne depuis n'importe quelle app.") {
+                SettingsRow(title: L("Start / stop dictation"), description: L("Works from any app.")) {
                     KeyboardShortcuts.Recorder(for: .toggleDictation).frame(width: 150)
                 }
-                SettingsRow(title: "Mode", description: app.mode.detail) {
+                SettingsRow(title: L("Mode"), description: app.mode.detail) {
                     PillMenu(selection: $app.mode, options: TriggerMode.allCases.map { ($0, $0.label) })
                 }
-                SettingsRow(title: "Annuler avec Échap", description: "Échap pendant l'écoute jette l'enregistrement.") {
+                SettingsRow(title: L("Cancel with Esc"), description: L("Pressing Esc while listening discards the recording.")) {
                     BlueSwitch(isOn: $app.escapeCancels)
                 }
             }
@@ -242,18 +258,18 @@ struct PermissionsPage: View {
             if app.isFirstLaunch { WelcomeCard().padding(.bottom, 20) }
             SectionTitle(text: "macOS")
             SettingsCard {
-                SettingsRow(title: "Microphone", description: "Pour enregistrer ta voix. Rien ne quitte le Mac.") {
+                SettingsRow(title: L("Microphone"), description: L("To record your voice. Nothing leaves your Mac.")) {
                     if mic {
                         granted
                     } else if micDenied {
                         openButton { AppModel.openPrivacyPane("Privacy_Microphone") }
                     } else {
-                        Button("Autoriser") { Task { _ = await app.requestMicrophone(); refresh() } }
+                        Button(L("Allow")) { Task { _ = await app.requestMicrophone(); refresh() } }
                             .buttonStyle(PillButtonStyle())
                     }
                 }
-                SettingsRow(title: "Accessibilité",
-                            description: "Pour coller le texte au curseur. Sans elle, le texte reste dans le presse-papiers.") {
+                SettingsRow(title: L("Accessibility"),
+                            description: L("To write the text at your cursor. Without it, the text stays in the clipboard.")) {
                     if accessibility {
                         granted
                     } else {
@@ -264,7 +280,7 @@ struct PermissionsPage: View {
                     }
                 }
             }
-            Text("Si le collage s'arrête après une mise à jour : Réglages Système > Accessibilité, retire WisperKit avec − puis rajoute-le avec +.")
+            Text(L("If inserting stops working after an update: System Settings > Accessibility, remove WisperKit with − then add it back with +."))
                 .font(.system(size: 11.5)).foregroundStyle(Theme.secondary).padding(.top, 10)
         }
         .onAppear(perform: refresh)
@@ -272,14 +288,14 @@ struct PermissionsPage: View {
     }
 
     private var granted: some View {
-        Label("Autorisé", systemImage: "checkmark.circle")
+        Label(L("Allowed"), systemImage: "checkmark.circle")
             .font(.system(size: 12)).foregroundStyle(Theme.green)
             .padding(.horizontal, 12).padding(.vertical, 6)
             .background(Capsule().fill(Theme.pill))
     }
 
     private func openButton(_ action: @escaping () -> Void) -> some View {
-        Button("Ouvrir les Réglages", action: action)
+        Button(L("Open Settings"), action: action)
             .buttonStyle(PillButtonStyle(foreground: Theme.danger, fill: Theme.dangerFill))
     }
 
@@ -297,13 +313,13 @@ struct WelcomeCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Bienvenue dans WisperKit").font(.system(size: 15, weight: .medium)).foregroundStyle(Theme.text)
-            Text("Quelques étapes et tu pourras dicter partout. Tout reste sur ton Mac.")
+            Text(L("Welcome to WisperKit")).font(.system(size: 15, weight: .medium)).foregroundStyle(Theme.text)
+            Text(L("A few steps and you can dictate anywhere. Everything stays on your Mac."))
                 .font(.system(size: 12)).foregroundStyle(Theme.secondary)
-            step(1, "Autorise le microphone ci-dessous.")
-            step(2, "Autorise l'Accessibilité, pour que le texte s'écrive au curseur.")
+            step(1, L("Allow the microphone below."))
+            step(2, L("Allow Accessibility so the text is written at your cursor."))
             step(3, modelStep)
-            step(4, "Place le curseur dans n'importe quelle app, appuie sur ⌃⌥D, parle, puis réappuie.")
+            step(4, L("Put your cursor in any app, press ⌃⌥D, speak, then press it again."))
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -313,11 +329,11 @@ struct WelcomeCard: View {
 
     private var modelStep: String {
         switch app.modelState {
-        case .downloading(let f): "Le modèle de transcription se télécharge (\(Int(f * 100)) %, environ 1,6 Go, une seule fois)."
-        case .loading: "Le modèle se charge…"
-        case .ready: "Le modèle est prêt."
-        case .failed(let message): "Échec du téléchargement du modèle : \(message) (réessaie dans l'onglet Modèle)."
-        case .missing: "Le modèle de transcription va être téléchargé (environ 1,6 Go, une seule fois)."
+        case .downloading(let f): L("The transcription model is downloading (%d%%, about 1.6 GB, one time only).", Int(f * 100))
+        case .loading: L("The model is loading…")
+        case .ready: L("The model is ready.")
+        case .failed(let message): L("Model download failed: %@ (retry from the Model tab).", L(message))
+        case .missing: L("The transcription model will be downloaded (about 1.6 GB, one time only).")
         }
     }
 
