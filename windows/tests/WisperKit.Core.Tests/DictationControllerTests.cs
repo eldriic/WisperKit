@@ -9,7 +9,9 @@ public class DictationControllerTests
     public async Task ToggleRecordsThenDeliversCleanText()
     {
         var rec = new FakeRecorder(); var output = new FakeOutput();
-        var c = new DictationController(rec, new FakeTranscriber(), output);
+        // Délai : hors de l'app (pas de contexte de synchronisation), la transcription finit
+        // sur un autre thread et pourrait se terminer avant la vérification de l'état.
+        var c = new DictationController(rec, new FakeTranscriber { Delay = TimeSpan.FromMilliseconds(150) }, output);
         var events = new List<string>();
         c.EventRaised += e => events.Add(e.GetType().Name);
 
