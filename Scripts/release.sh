@@ -22,7 +22,7 @@ STAGE=$(mktemp -d)
 trap 'rm -rf "$STAGE"' EXIT
 # Copie sans attributs étendus puis re-signature hors de ~/Documents : iCloud Drive
 # ajoute des attributs Finder qui invalident la signature (« app endommagée »).
-ditto --norsrc --noextattr build/WisperKit.app "$STAGE/WisperKit.app"
+ditto --norsrc --noextattr build.noindex/WisperKit.app "$STAGE/WisperKit.app"
 codesign --force --deep --sign "WisperKit Dev" --identifier com.eldriic.wisperkit "$STAGE/WisperKit.app"
 codesign --verify --deep --strict "$STAGE/WisperKit.app"
 ln -s /Applications "$STAGE/Applications"

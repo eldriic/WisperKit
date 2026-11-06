@@ -19,5 +19,6 @@ DerivedData/
 # Généré par XcodeGen (source = project.yml)
 *.xcodeproj
 build/
+build.noindex/
 dist/
 .claude/settings.local.json
