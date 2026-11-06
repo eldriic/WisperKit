@@ -47,6 +47,8 @@ final class AppModel {
     @ObservationIgnored private var askedAccessibility = false
     /// Le dernier collage auto a échoué faute d'autorisation Accessibilité.
     private(set) var pasteBlocked = false
+    /// Premier lancement : la fenêtre s'ouvre sur l'accueil et les autorisations.
+    let isFirstLaunch: Bool
 
     private(set) var modelState: ModelState = .missing
     /// Téléchargements en cours depuis la page Modèle (hors modèle actif).
@@ -95,6 +97,12 @@ final class AppModel {
         sounds = defaults.bool(forKey: "sounds")
         mode = TriggerMode(rawValue: defaults.string(forKey: "mode") ?? "") ?? .toggle
         escapeCancels = defaults.bool(forKey: "escapeCancels")
+        let args = CommandLine.arguments
+        isFirstLaunch = !defaults.bool(forKey: "onboarded") || args.contains("--first-launch")
+        // Les modes Debug (captures, autotest) partagent les réglages : ils ne consomment pas l'accueil.
+        if !args.contains("--snapshots") && !args.contains("--selftest") {
+            defaults.set(true, forKey: "onboarded")
+        }
         showHUD = defaults.bool(forKey: "showHUD")
 
         dictation = DictationController(recorder: AudioRecorder(), transcriber: transcriber, output: TextInserter())
@@ -105,7 +113,7 @@ final class AppModel {
 
         refreshInstalled()
         setUpShortcuts()
-        Task { await loadActiveModel() }
+        if !CommandLine.arguments.contains("--snapshots") { Task { await loadActiveModel() } }
         let bundle = Bundle.main.bundlePath
         DiagnosticLog.write("démarrage \(bundle) envoiTouches=\(TextInserter.canPostEvents) axTrusted=\(AXIsProcessTrusted())")
     }
@@ -177,6 +185,11 @@ final class AppModel {
         guard sounds, !transientMute else { return }
         NSSound(named: NSSound.Name(name))?.play()
     }
+
+    #if DEBUG
+    /// Captures d'écran : état « prêt » sans attendre le chargement du modèle.
+    func forceReadyForSnapshots() { modelState = .ready }
+    #endif
 
     // MARK: Modèles
 

@@ -12,7 +12,8 @@ enum Snapshots {
         let dir = URL(filePath: args[i + 1], directoryHint: .isDirectory)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
 
-        render(MenuBarView().environment(app), size: CGSize(width: 280, height: 260), to: dir.appending(path: "menu.png"))
+        app.forceReadyForSnapshots()
+        render(MenuBarView().environment(app), size: CGSize(width: 280, height: 168), to: dir.appending(path: "menu.png"))
         for page in SettingsPage.allCases {
             render(SettingsView(initialPage: page).environment(app), size: CGSize(width: 760, height: 540),
                    to: dir.appending(path: "settings-\(page.rawValue).png"))
@@ -22,8 +23,11 @@ enum Snapshots {
         ]
         for (name, level, t, transcribing) in frames {
             render(HUDContent(time: t, level: level, elapsed: 4, transcribing: transcribing)
-                    .padding(30).background(Color(red: 0.11, green: 0.13, blue: 0.2)),
-                   size: CGSize(width: 260, height: 124), to: dir.appending(path: "\(name).png"))
+                    .padding(.horizontal, 60).padding(.vertical, 38)
+                    .background(LinearGradient(colors: [Color(red: 0.10, green: 0.12, blue: 0.24),
+                                                        Color(red: 0.22, green: 0.10, blue: 0.28)],
+                                               startPoint: .topLeading, endPoint: .bottomTrailing)),
+                   size: CGSize(width: 320, height: 140), to: dir.appending(path: "\(name).png"))
         }
         exit(0)
     }

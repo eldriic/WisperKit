@@ -23,7 +23,8 @@ xcodegen generate --quiet
 # Compilation signée ad-hoc, puis re-signature avec l'identité choisie : Xcode refuse
 # les certificats auto-signés (non approuvés), codesign les accepte.
 xcodebuild -project WisperKit.xcodeproj -scheme WisperKit -configuration Release \
-  -derivedDataPath "$DERIVED" CODE_SIGN_IDENTITY="-" build -quiet
+  -derivedDataPath "$DERIVED" CODE_SIGN_IDENTITY="-" \
+  ${WK_VERSION:+MARKETING_VERSION="$WK_VERSION"} build -quiet
 
 APP="$DERIVED/Build/Products/Release/WisperKit.app"
 rm -rf build/WisperKit.app && mkdir -p build

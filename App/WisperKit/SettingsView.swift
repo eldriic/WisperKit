@@ -239,6 +239,7 @@ struct PermissionsPage: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            if app.isFirstLaunch { WelcomeCard().padding(.bottom, 20) }
             SectionTitle(text: "macOS")
             SettingsCard {
                 SettingsRow(title: "Microphone", description: "Pour enregistrer ta voix. Rien ne quitte le Mac.") {
@@ -263,7 +264,7 @@ struct PermissionsPage: View {
                     }
                 }
             }
-            Text("Après un nouveau build non signé, macOS peut demander de réactiver l'Accessibilité : retire WisperKit de la liste puis rajoute-le.")
+            Text("Si le collage s'arrête après une mise à jour : Réglages Système > Accessibilité, retire WisperKit avec − puis rajoute-le avec +.")
                 .font(.system(size: 11.5)).foregroundStyle(Theme.secondary).padding(.top, 10)
         }
         .onAppear(perform: refresh)
@@ -286,5 +287,45 @@ struct PermissionsPage: View {
         accessibility = TextInserter.hasAccessibility
         mic = app.micAuthorized
         micDenied = app.micDenied
+    }
+}
+
+// MARK: - Accueil (premier lancement)
+
+struct WelcomeCard: View {
+    @Environment(AppModel.self) private var app
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Bienvenue dans WisperKit").font(.system(size: 15, weight: .medium)).foregroundStyle(Theme.text)
+            Text("Quelques étapes et tu pourras dicter partout. Tout reste sur ton Mac.")
+                .font(.system(size: 12)).foregroundStyle(Theme.secondary)
+            step(1, "Autorise le microphone ci-dessous.")
+            step(2, "Autorise l'Accessibilité, pour que le texte s'écrive au curseur.")
+            step(3, modelStep)
+            step(4, "Place le curseur dans n'importe quelle app, appuie sur ⌃⌥D, parle, puis réappuie.")
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 14).fill(Theme.blue.opacity(0.10)))
+        .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Theme.blue.opacity(0.35), lineWidth: 1))
+    }
+
+    private var modelStep: String {
+        switch app.modelState {
+        case .downloading(let f): "Le modèle de transcription se télécharge (\(Int(f * 100)) %, environ 1,6 Go, une seule fois)."
+        case .loading: "Le modèle se charge…"
+        case .ready: "Le modèle est prêt."
+        case .failed(let message): "Échec du téléchargement du modèle : \(message) (réessaie dans l'onglet Modèle)."
+        case .missing: "Le modèle de transcription va être téléchargé (environ 1,6 Go, une seule fois)."
+        }
+    }
+
+    private func step(_ n: Int, _ text: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Text("\(n)").font(.system(size: 11, weight: .semibold)).foregroundStyle(Theme.text)
+                .frame(width: 20, height: 20).background(Circle().fill(Theme.blue.opacity(0.5)))
+            Text(text).font(.system(size: 12.5)).foregroundStyle(Theme.text).fixedSize(horizontal: false, vertical: true)
+        }
     }
 }

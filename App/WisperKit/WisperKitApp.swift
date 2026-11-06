@@ -24,8 +24,12 @@ struct WisperKitApp: App {
         .menuBarExtraStyle(.window)
 
         Window("Réglages WisperKit", id: Self.settingsWindowID) {
-            SettingsView().environment(app)
+            SettingsView(initialPage: app.isFirstLaunch ? .permissions : .general)
+                .environment(app)
+                .onAppear { NSApp.activate() }
         }
+        // Au premier lancement, la fenêtre s'ouvre seule pour guider l'installation.
+        .defaultLaunchBehavior(app.isFirstLaunch ? .presented : .suppressed)
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
         .defaultPosition(.center)
