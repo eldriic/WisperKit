@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 import AVFoundation
 import KeyboardShortcuts
 import Observation
@@ -105,6 +106,8 @@ final class AppModel {
         refreshInstalled()
         setUpShortcuts()
         Task { await loadActiveModel() }
+        let bundle = Bundle.main.bundlePath
+        DiagnosticLog.write("démarrage \(bundle) envoiTouches=\(TextInserter.canPostEvents) axTrusted=\(AXIsProcessTrusted())")
     }
 
     // MARK: Dictée

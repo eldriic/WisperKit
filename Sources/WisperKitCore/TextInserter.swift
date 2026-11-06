@@ -16,10 +16,14 @@ public protocol TextOutput: AnyObject {
 public final class TextInserter: TextOutput {
     public init() {}
 
-    public static var hasAccessibility: Bool { AXIsProcessTrusted() }
+    /// Le collage n'a besoin que du droit d'envoyer des événements clavier
+    /// (rangé par macOS dans Accessibilité) ; AXIsProcessTrusted le couvre aussi.
+    public static var hasAccessibility: Bool { canPostEvents || AXIsProcessTrusted() }
+    public static var canPostEvents: Bool { CGPreflightPostEventAccess() }
 
-    /// Ouvre la demande système d'autorisation Accessibilité.
+    /// Ouvre la demande système d'autorisation (ajoute WisperKit à la liste Accessibilité).
     public static func requestAccessibility() {
+        _ = CGRequestPostEventAccess()
         let key = "AXTrustedCheckOptionPrompt" // valeur de kAXTrustedCheckOptionPrompt
         _ = AXIsProcessTrustedWithOptions([key: true] as CFDictionary)
     }
@@ -32,9 +36,10 @@ public final class TextInserter: TextOutput {
         pb.setString(text, forType: .string)
 
         let front = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "?"
-        let trusted = Self.hasAccessibility
+        let post = Self.canPostEvents, ax = AXIsProcessTrusted()
+        let trusted = post || ax
         let secure = IsSecureEventInputEnabled()
-        DiagnosticLog.write("livraison \(text.count) car. → app=\(front) autoPaste=\(autoPaste) accessibilité=\(trusted) saisieSécurisée=\(secure)")
+        DiagnosticLog.write("livraison \(text.count) car. → app=\(front) autoPaste=\(autoPaste) envoiTouches=\(post) axTrusted=\(ax) saisieSécurisée=\(secure)")
 
         guard autoPaste else { return false }
         guard trusted else {
