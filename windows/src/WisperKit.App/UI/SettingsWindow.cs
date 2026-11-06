@@ -210,7 +210,7 @@ internal sealed class SettingsWindow : Window
 
         body.Children.Add(Theme.SectionTitle(L("Storage")));
         var usage = _app.Store.DiskUsage() / (1024.0 * 1024 * 1024);
-        body.Children.Add(Theme.Card(Theme.Row(L("Models folder"), $"{_app.Store.Directory} · {L("%@ GB", usage.ToString("0.00", System.Globalization.CultureInfo.GetCultureInfo(Language)))}",
+        body.Children.Add(Theme.Card(Theme.Row(L("Models folder"), $"{_app.Store.Directory} · {L("%@ GB", usage.ToString("0.00", System.Globalization.CultureInfo.GetCultureInfo(Localizer.Language)))}",
             Theme.PillButton(L("Show"), () =>
             {
                 System.IO.Directory.CreateDirectory(_app.Store.Directory);
