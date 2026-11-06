@@ -17,7 +17,7 @@ enum Snapshots {
             render(SettingsView(initialPage: page).environment(app), size: CGSize(width: 760, height: 540),
                    to: dir.appending(path: "settings-\(page.rawValue).png"))
         }
-        for (name, level, t) in [("hud-voix", 0.85, 1.3), ("hud-calme", 0.35, 2.1), ("hud-transcription", 0.18, 0.7)] {
+        for (name, level, t) in [("hud-voix", 0.85, 1.3), ("hud-calme", 0.35, 2.1), ("hud-transcription", -1, 0.7)] {
             render(HUDFrame(level: level, time: t).padding(30).background(Color(red: 0.11, green: 0.13, blue: 0.2)),
                    size: CGSize(width: 220, height: 120), to: dir.appending(path: "\(name).png"))
         }
@@ -33,8 +33,9 @@ enum Snapshots {
         Task { @MainActor in
             await app.loadActiveModel()
             guard app.modelState == .ready else { print("SELFTEST modèle: \(app.modelState)"); exit(1) }
-            app.sounds = false
-            app.autoPaste = false
+            // Sans passer par les réglages persistés (même identifiant que l'app installée).
+            app.transientMute = true
+            app.dictation.autoPaste = false
             print("SELFTEST écoute \(seconds) s"); fflush(stdout)
             app.dictation.start()
             try? await Task.sleep(for: .seconds(seconds))
@@ -67,7 +68,10 @@ private struct HUDFrame: View {
     let time: Double
 
     var body: some View {
-        Canvas { ctx, size in WaveRenderer.draw(in: &ctx, size: size, time: time, level: level) }
+        Canvas { ctx, size in
+            if level < 0 { WaveRenderer.drawThinking(in: &ctx, size: size, time: time) }
+            else { WaveRenderer.draw(in: &ctx, size: size, time: time, level: level) }
+        }
             .frame(width: RecordingHUD.size.width, height: RecordingHUD.size.height)
             .background(Capsule().fill(Color(white: 0.04).opacity(0.88)))
             .overlay(Capsule().strokeBorder(.white.opacity(0.12), lineWidth: 1))

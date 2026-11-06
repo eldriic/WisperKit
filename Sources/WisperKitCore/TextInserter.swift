@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import os
 
 /// Destination du texte transcrit (permet de tester le contrôleur).
 @MainActor
@@ -29,7 +30,12 @@ public final class TextInserter: TextOutput {
         pb.clearContents()
         pb.setString(text, forType: .string)
 
-        guard autoPaste, Self.hasAccessibility else { return false }
+        guard autoPaste else { return false }
+        guard Self.hasAccessibility else {
+            Logger(subsystem: "com.eldriic.wisperkit", category: "paste")
+                .error("collage impossible : processus non autorisé (Accessibilité)")
+            return false
+        }
         Self.pressCommandV()
 
         if let saved {

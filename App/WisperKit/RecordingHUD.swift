@@ -9,6 +9,7 @@ final class RecordingHUD {
     static let size = CGSize(width: 160, height: 60)
 
     private let panel: NSPanel
+    private let state = HUDState()
     private var hideTask: Task<Void, Never>?
 
     init(dictation: DictationController) {
@@ -22,10 +23,27 @@ final class RecordingHUD {
         panel.isReleasedWhenClosed = false
         panel.hidesOnDeactivate = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
-        panel.contentView = NSHostingView(rootView: HUDView(dictation: dictation))
+        panel.contentView = NSHostingView(rootView: HUDView(dictation: dictation, state: state))
     }
 
     func show() {
+        state.message = nil
+        reveal()
+    }
+
+    /// Affiche un court message (ex. texte seulement copié) puis masque.
+    func flash(_ message: String) {
+        state.message = message
+        reveal()
+        hideTask = Task {
+            try? await Task.sleep(for: .milliseconds(1600))
+            guard !Task.isCancelled else { return }
+            self.hideTask = nil
+            self.hide()
+        }
+    }
+
+    private func reveal() {
         hideTask?.cancel()
         hideTask = nil
         if !panel.isVisible {
@@ -62,17 +80,36 @@ final class RecordingHUD {
     }
 }
 
-/// Pilule noire translucide avec des vagues bleu / rose qui suivent la voix.
+@MainActor
+@Observable
+final class HUDState {
+    var message: String?
+}
+
+/// Pilule noire translucide : vagues bleu / rose qui suivent la voix pendant l'écoute,
+/// trait lumineux qui balaie pendant la transcription, message court sinon.
 struct HUDView: View {
     let dictation: DictationController
+    let state: HUDState
     @State private var meter = LevelSmoother()
 
     var body: some View {
-        TimelineView(.animation) { timeline in
-            Canvas { ctx, size in
-                let t = timeline.date.timeIntervalSinceReferenceDate
-                let level = meter.next(target: target)
-                WaveRenderer.draw(in: &ctx, size: size, time: t, level: level)
+        Group {
+            if let message = state.message {
+                Label(message, systemImage: "doc.on.clipboard")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.9))
+            } else {
+                TimelineView(.animation) { timeline in
+                    Canvas { ctx, size in
+                        let t = timeline.date.timeIntervalSinceReferenceDate
+                        if dictation.state == .transcribing {
+                            WaveRenderer.drawThinking(in: &ctx, size: size, time: t)
+                        } else {
+                            WaveRenderer.draw(in: &ctx, size: size, time: t, level: meter.next(target: target))
+                        }
+                    }
+                }
             }
         }
         .frame(width: RecordingHUD.size.width, height: RecordingHUD.size.height)
@@ -81,13 +118,8 @@ struct HUDView: View {
         .clipShape(Capsule())
     }
 
-    /// Pendant la transcription, les vagues se calment et ondulent doucement.
     private var target: Double {
-        switch dictation.state {
-        case .recording: 0.15 + 0.85 * Double(dictation.audioLevel)
-        case .transcribing: 0.18
-        default: 0
-        }
+        dictation.state == .recording ? 0.15 + 0.85 * Double(dictation.audioLevel) : 0
     }
 }
 
@@ -109,6 +141,19 @@ enum WaveRenderer {
         Color(red: 0.47, green: 0.86, blue: 1.0).opacity(0.35),
         Color.white.opacity(0.30),
     ]
+
+    /// Transcription : trait fin et lueur bleu / rose qui va et vient (l'écoute est finie).
+    static func drawThinking(in ctx: inout GraphicsContext, size: CGSize, time t: Double) {
+        let pad = 22.0, midY = size.height / 2, width = size.width - 2 * pad
+        ctx.fill(Path(CGRect(x: pad, y: midY - 0.75, width: width, height: 1.5)), with: .color(.white.opacity(0.18)))
+        ctx.blendMode = .plusLighter
+        let u = (sin(t * 2.6) + 1) / 2
+        for (i, color) in [colors[0], colors[2], colors[4]].enumerated() {
+            let center = pad + width * (0.15 + 0.7 * ((u + Double(i) * 0.08).truncatingRemainder(dividingBy: 1)))
+            let w = 34.0 - Double(i) * 8, h = 7.0 - Double(i) * 1.5
+            ctx.fill(Path(ellipseIn: CGRect(x: center - w / 2, y: midY - h / 2, width: w, height: h)), with: .color(color))
+        }
+    }
 
     static func draw(in ctx: inout GraphicsContext, size: CGSize, time t: Double, level: Double) {
         let pad = 18.0

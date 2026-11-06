@@ -2,6 +2,7 @@ import AppKit
 import AVFoundation
 import KeyboardShortcuts
 import Observation
+import os
 import ServiceManagement
 import WisperKitCore
 
@@ -10,6 +11,8 @@ extension KeyboardShortcuts.Name {
     /// Actif seulement pendant l'écoute, pour ne pas voler Échap au reste du système.
     static let cancelDictation = Self("cancelDictation", initial: .init(.escape))
 }
+
+let log = Logger(subsystem: "com.eldriic.wisperkit", category: "app")
 
 enum TriggerMode: String, CaseIterable, Identifiable {
     case toggle, hold
@@ -41,6 +44,11 @@ final class AppModel {
     private let transcriber = Transcriber()
     private let defaults = UserDefaults.standard
     @ObservationIgnored private lazy var hud = RecordingHUD(dictation: dictation)
+    /// Coupe les sons sans toucher au réglage persisté (autotest).
+    @ObservationIgnored var transientMute = false
+    @ObservationIgnored private var askedAccessibility = false
+    /// Le dernier collage auto a échoué faute d'autorisation Accessibilité.
+    private(set) var pasteBlocked = false
 
     private(set) var modelState: ModelState = .missing
     /// Téléchargements en cours depuis la page Modèle (hors modèle actif).
@@ -114,7 +122,9 @@ final class AppModel {
     private func setUpShortcuts() {
         KeyboardShortcuts.disable(.cancelDictation)
         KeyboardShortcuts.onKeyDown(for: .toggleDictation) { [weak self] in
-            guard let self, self.canDictate else { return }
+            guard let self else { return }
+            log.info("raccourci ↓ état=\(String(describing: self.dictation.state), privacy: .public) modèle=\(String(describing: self.modelState), privacy: .public)")
+            guard self.canDictate else { return }
             switch self.mode {
             case .toggle: self.dictation.toggle()
             case .hold: self.dictation.start()
@@ -138,8 +148,20 @@ final class AppModel {
         case .stopped:
             KeyboardShortcuts.disable(.cancelDictation)
             play("Pop")
-        case .delivered:
-            hud.hide()
+        case .delivered(let pasted):
+            if pasted || !autoPaste {
+                pasteBlocked = false
+                hud.hide()
+            } else {
+                // Collage demandé mais refusé par macOS : le texte est dans le presse-papiers.
+                pasteBlocked = true
+                hud.flash("Copié · ⌘V pour coller")
+                if !askedAccessibility {
+                    askedAccessibility = true
+                    TextInserter.requestAccessibility()
+                }
+            }
+            log.info("texte livré, collé=\(pasted, privacy: .public) accessibilité=\(TextInserter.hasAccessibility, privacy: .public)")
             play("Glass")
         case .cancelled:
             hud.hide()
@@ -152,7 +174,7 @@ final class AppModel {
     }
 
     private func play(_ name: String) {
-        guard sounds else { return }
+        guard sounds, !transientMute else { return }
         NSSound(named: NSSound.Name(name))?.play()
     }
 
@@ -243,7 +265,9 @@ final class AppModel {
         case .missing: return "Aucun modèle"
         case .downloading(let f): return "Téléchargement \(Int(f * 100)) %"
         case .loading: return "Chargement du modèle…"
-        case .ready: return "Prêt · \(activeModel.title)"
+        case .ready:
+            if pasteBlocked && !TextInserter.hasAccessibility { return "Collage auto bloqué : autorise l'Accessibilité" }
+            return "Prêt · \(activeModel.title)"
         case .failed(let message): return message
         }
     }

@@ -11,7 +11,12 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 DERIVED="$HOME/Library/Caches/WisperKit/DerivedData"
+# Certificat local « WisperKit Dev » utilisé automatiquement s'il est dans le trousseau.
+if [[ -z "${WK_SIGN_IDENTITY:-}" ]] && security find-identity -p codesigning | grep -q '"WisperKit Dev"'; then
+  WK_SIGN_IDENTITY="WisperKit Dev"
+fi
 IDENTITY="${WK_SIGN_IDENTITY:--}"
+echo "Signature : ${IDENTITY/#-/ad-hoc}"
 
 xcodegen generate --quiet
 xcodebuild -project WisperKit.xcodeproj -scheme WisperKit -configuration Release \
