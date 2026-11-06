@@ -23,6 +23,8 @@ En Debug, deux modes utilitaires :
 `WisperKit --snapshots <dossier>` (PNG de chaque écran) et `WisperKit --selftest <s> [--paste <bundle id>]` (micro → modèle → presse-papiers, collage dans l'app donnée).
 Diagnostic du collage : `~/Library/Logs/WisperKit/wisperkit.log`.
 
-Signature ad-hoc par défaut : après chaque nouveau build, macOS peut demander de réactiver
-l'Accessibilité. Avec un certificat local de signature de code « WisperKit Dev » :
-`WK_SIGN_IDENTITY="WisperKit Dev" ./Scripts/build.sh`.
+Signature : `build.sh` signe avec le certificat local auto-signé « WisperKit Dev » (trousseau de
+session) s'il existe, sinon en ad-hoc. Avec le certificat, macOS identifie l'app par
+`identifier "com.eldriic.wisperkit" and certificate leaf = …` : l'autorisation Accessibilité
+survit aux mises à jour. En ad-hoc, elle est liée à l'empreinte exacte du binaire et saute à
+chaque build (collage auto refusé, `accessibilité=false` dans le journal).
