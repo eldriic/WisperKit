@@ -6,7 +6,7 @@ import WisperKitCore
 /// et la transcription. Ne prend jamais le focus : le texte part dans l'app d'origine.
 @MainActor
 final class RecordingHUD {
-    static let size = CGSize(width: 160, height: 60)
+    static let size = CGSize(width: 200, height: 64)
 
     private let panel: NSPanel
     private let state = HUDState()
@@ -17,7 +17,7 @@ final class RecordingHUD {
                         styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
         panel.isOpaque = false
         panel.backgroundColor = .clear
-        panel.hasShadow = false
+        panel.hasShadow = true
         panel.level = .statusBar
         panel.ignoresMouseEvents = true
         panel.isReleasedWhenClosed = false
@@ -28,6 +28,7 @@ final class RecordingHUD {
 
     func show() {
         state.message = nil
+        state.startedAt = .now
         reveal()
     }
 
@@ -84,43 +85,106 @@ final class RecordingHUD {
 @Observable
 final class HUDState {
     var message: String?
+    var startedAt = Date.now
 }
 
-/// Pilule noire translucide : vagues bleu / rose qui suivent la voix pendant l'écoute,
-/// trait lumineux qui balaie pendant la transcription, message court sinon.
+/// Pilule animée (lit l'état et le niveau micro à chaque image).
 struct HUDView: View {
     let dictation: DictationController
     let state: HUDState
     @State private var meter = LevelSmoother()
 
     var body: some View {
-        Group {
-            if let message = state.message {
+        TimelineView(.animation) { timeline in
+            let transcribing = dictation.state == .transcribing
+            let target = dictation.state == .recording ? Double(dictation.audioLevel) : 0
+            HUDContent(time: timeline.date.timeIntervalSinceReferenceDate,
+                       level: meter.next(target: target),
+                       elapsed: timeline.date.timeIntervalSince(state.startedAt),
+                       transcribing: transcribing,
+                       message: state.message)
+        }
+    }
+}
+
+/// Rendu pur de la pilule (partagé avec les captures Debug).
+struct HUDContent: View {
+    let time: Double
+    let level: Double
+    let elapsed: Double
+    let transcribing: Bool
+    var message: String?
+
+    var body: some View {
+        ZStack {
+            if let message {
                 Label(message, systemImage: "doc.on.clipboard")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.white.opacity(0.9))
             } else {
-                TimelineView(.animation) { timeline in
+                HStack(spacing: 0) {
                     Canvas { ctx, size in
-                        let t = timeline.date.timeIntervalSinceReferenceDate
-                        if dictation.state == .transcribing {
-                            WaveRenderer.drawThinking(in: &ctx, size: size, time: t)
-                        } else {
-                            WaveRenderer.draw(in: &ctx, size: size, time: t, level: meter.next(target: target))
-                        }
+                        WaveRenderer.draw(in: &ctx, size: size, time: time,
+                                          level: transcribing ? 0.12 : max(level, 0.08),
+                                          speed: transcribing ? 0.45 : 1)
                     }
+                    status.frame(width: 56)
                 }
             }
         }
         .frame(width: RecordingHUD.size.width, height: RecordingHUD.size.height)
-        .background(Capsule().fill(Color(white: 0.04).opacity(0.88)))
-        .overlay(Capsule().strokeBorder(.white.opacity(0.12), lineWidth: 1))
+        .background {
+            ZStack {
+                VisualEffectBlur()
+                Color.black.opacity(0.45)
+                if message == nil {
+                    Canvas { ctx, size in
+                        WaveRenderer.drawHalo(in: &ctx, size: size, level: transcribing ? 0.1 : level)
+                    }
+                }
+            }
+        }
+        .overlay(Capsule().strokeBorder(.white.opacity(0.10), lineWidth: 1))
         .clipShape(Capsule())
     }
 
-    private var target: Double {
-        dictation.state == .recording ? 0.15 + 0.85 * Double(dictation.audioLevel) : 0
+    /// Point rouge qui pulse + minuteur pendant l'écoute ; point bleu + « ··· » en transcription.
+    private var status: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(transcribing ? Color(red: 0.55, green: 0.67, blue: 1) : Color(nsColor: .systemRed))
+                .opacity(transcribing ? 0.9 : 0.6 + 0.4 * abs(sin(time * 3)))
+                .frame(width: 6, height: 6)
+            Text(transcribing ? dots : Self.format(elapsed))
+                .font(.system(size: 12, weight: .medium).monospacedDigit())
+                .foregroundStyle(.white.opacity(0.85))
+                .frame(width: 30, alignment: .leading)
+        }
+        .padding(.trailing, 10)
     }
+
+    private var dots: String {
+        String(repeating: "·", count: Int(time * 3) % 3 + 1)
+    }
+
+    static func format(_ seconds: Double) -> String {
+        let s = max(0, Int(seconds))
+        return "\(s / 60):\(String(format: "%02d", s % 60))"
+    }
+}
+
+/// Flou natif de ce qu'il y a derrière la fenêtre (comme les panneaux macOS).
+struct VisualEffectBlur: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = .hudWindow
+        view.blendingMode = .behindWindow
+        view.state = .active
+        view.appearance = NSAppearance(named: .darkAqua)
+        return view
+    }
+
+    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
 }
 
 /// Lissage du niveau entre deux images (réactif à l'attaque, plus lent à la retombée).
@@ -128,61 +192,59 @@ final class LevelSmoother {
     private var value = 0.0
 
     func next(target: Double) -> Double {
-        value += (target - value) * (target > value ? 0.35 : 0.1)
+        value += (target - value) * (target > value ? 0.3 : 0.08)
         return value
     }
 }
 
 enum WaveRenderer {
-    static let colors: [Color] = [
-        Color(red: 0.24, green: 0.51, blue: 1.0).opacity(0.55),
-        Color(red: 0.47, green: 0.35, blue: 1.0).opacity(0.45),
-        Color(red: 1.0, green: 0.35, blue: 0.86).opacity(0.50),
-        Color(red: 0.47, green: 0.86, blue: 1.0).opacity(0.35),
-        Color.white.opacity(0.30),
+    /// Bleu, violet, rose, cyan.
+    static let palette: [(Double, Double, Double)] = [
+        (0.25, 0.55, 1.0), (0.51, 0.35, 1.0), (1.0, 0.31, 0.82), (0.35, 0.82, 1.0),
     ]
 
-    /// Transcription : trait fin et lueur bleu / rose qui va et vient (l'écoute est finie).
-    static func drawThinking(in ctx: inout GraphicsContext, size: CGSize, time t: Double) {
-        let pad = 22.0, midY = size.height / 2, width = size.width - 2 * pad
-        ctx.fill(Path(CGRect(x: pad, y: midY - 0.75, width: width, height: 1.5)), with: .color(.white.opacity(0.18)))
-        ctx.blendMode = .plusLighter
-        let u = (sin(t * 2.6) + 1) / 2
-        for (i, color) in [colors[0], colors[2], colors[4]].enumerated() {
-            let center = pad + width * (0.15 + 0.7 * ((u + Double(i) * 0.08).truncatingRemainder(dividingBy: 1)))
-            let w = 34.0 - Double(i) * 8, h = 7.0 - Double(i) * 1.5
-            ctx.fill(Path(ellipseIn: CGRect(x: center - w / 2, y: midY - h / 2, width: w, height: h)), with: .color(color))
-        }
+    /// Halo violet qui s'éclaire avec la voix.
+    static func drawHalo(in ctx: inout GraphicsContext, size: CGSize, level: Double) {
+        let center = CGPoint(x: size.width * 0.42, y: size.height / 2)
+        let radius = size.width * 0.55
+        let color = Color(red: 0.47, green: 0.43, blue: 1.0)
+        ctx.fill(Path(CGRect(origin: .zero, size: size)), with: .radialGradient(
+            Gradient(colors: [color.opacity(0.16 + 0.36 * level), color.opacity(0)]),
+            center: center, startRadius: 2, endRadius: radius))
     }
 
-    static func draw(in ctx: inout GraphicsContext, size: CGSize, time t: Double, level: Double) {
-        let pad = 18.0
+    /// Vagues superposées, estompées aux deux bouts, en mélange additif.
+    static func draw(in ctx: inout GraphicsContext, size: CGSize, time t: Double, level: Double, speed: Double = 1) {
+        let left = 16.0, right = size.width - 4
         let midY = size.height / 2
-        let amplitude = (size.height / 2 - 4) * max(level, 0.06)
-        ctx.blendMode = .plusLighter
+        let amplitude = (size.height / 2 - 9) * min(level, 1)
+        var layer = ctx
+        layer.blendMode = .plusLighter
 
-        for (i, color) in colors.enumerated() {
-            let freq = 1.2 + Double(i) * 0.45
-            let phase = t * (1.6 + Double(i) * 0.5) + Double(i) * 1.7
-            let a = amplitude * (1 - Double(i) * 0.13)
+        for (i, (r, g, b)) in palette.enumerated() {
+            let a = amplitude * (1 - Double(i) * 0.12)
+            let freq = 1.1 + Double(i) * 0.35
+            let phase = t * (1.3 + Double(i) * 0.4) * speed + Double(i) * 2
             var path = Path()
-            let steps = 60
+            let steps = 70
             for k in 0...steps {
                 let u = Double(k) / Double(steps)
-                let x = pad + u * (size.width - 2 * pad)
-                let envelope = pow(sin(.pi * u), 1.5)
-                let y = midY + sin(u * .pi * 2 * freq + phase) * a * envelope
-                k == 0 ? path.move(to: CGPoint(x: x, y: y)) : path.addLine(to: CGPoint(x: x, y: y))
+                let y = midY + sin(u * .pi * 2 * freq + phase) * a * pow(sin(.pi * u), 1.4)
+                let p = CGPoint(x: left + u * (right - left), y: y)
+                k == 0 ? path.move(to: p) : path.addLine(to: p)
             }
             for k in stride(from: steps, through: 0, by: -1) {
                 let u = Double(k) / Double(steps)
-                let x = pad + u * (size.width - 2 * pad)
-                let envelope = pow(sin(.pi * u), 1.5)
-                let y = midY - sin(u * .pi * 2 * freq + phase + 0.8) * a * envelope * 0.8
-                path.addLine(to: CGPoint(x: x, y: y))
+                let y = midY - sin(u * .pi * 2 * freq + phase + 1) * a * pow(sin(.pi * u), 1.4) * 0.7
+                path.addLine(to: CGPoint(x: left + u * (right - left), y: y))
             }
             path.closeSubpath()
-            ctx.fill(path, with: .color(color))
+            let color = Color(red: r, green: g, blue: b)
+            layer.fill(path, with: .linearGradient(
+                Gradient(stops: [.init(color: color.opacity(0), location: 0),
+                                 .init(color: color.opacity(0.62), location: 0.5),
+                                 .init(color: color.opacity(0), location: 1)]),
+                startPoint: CGPoint(x: left, y: midY), endPoint: CGPoint(x: right, y: midY)))
         }
     }
 }
