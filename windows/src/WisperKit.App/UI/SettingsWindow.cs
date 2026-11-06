@@ -205,12 +205,12 @@ internal sealed class SettingsWindow : Window
     private void Model(StackPanel body)
     {
         body.Children.Add(Theme.SectionTitle(L("Installed and available models")));
-        body.Children.Add(Theme.Card(WhisperModel.All.Select(m => (UIElement?)Theme.Row(m.Title, $"{L(m.Detail)} · {m.Size}", ModelTrailing(m),
+        body.Children.Add(Theme.Card(WhisperModel.All.Select(m => (UIElement?)Theme.Row(m.Title, $"{L(m.Detail)} · {L(m.Size)}", ModelTrailing(m),
             m.Id == _app.Settings.ModelId ? L("active") : null)).ToArray()));
 
         body.Children.Add(Theme.SectionTitle(L("Storage")));
         var usage = _app.Store.DiskUsage() / (1024.0 * 1024 * 1024);
-        body.Children.Add(Theme.Card(Theme.Row(L("Models folder"), $"{_app.Store.Directory} · {usage:0.00} GB",
+        body.Children.Add(Theme.Card(Theme.Row(L("Models folder"), $"{_app.Store.Directory} · {L("%@ GB", usage.ToString("0.00", System.Globalization.CultureInfo.GetCultureInfo(Language)))}",
             Theme.PillButton(L("Show"), () =>
             {
                 System.IO.Directory.CreateDirectory(_app.Store.Directory);

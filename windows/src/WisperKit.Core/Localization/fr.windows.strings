@@ -18,3 +18,7 @@
 "WisperKit is vibe-coded: built through conversation with an AI coding assistant. MIT license — Whisper by OpenAI, whisper.cpp, Whisper.net, NAudio, H.NotifyIcon." = "WisperKit est vibe-codé : construit en dialoguant avec un assistant de code IA. Licence MIT — Whisper (OpenAI), whisper.cpp, Whisper.net, NAudio, H.NotifyIcon.";
 "WisperKit opens when you sign in." = "WisperKit s'ouvre quand tu te connectes.";
 "Your microphone is ready. Windows may ask for permission the first time." = "Ton micro est prêt. Windows peut demander l'autorisation la première fois.";
+"550 MB" = "550 Mo";
+"1.1 GB" = "1,1 Go";
+"470 MB" = "470 Mo";
+"%@ GB" = "%@ Go";

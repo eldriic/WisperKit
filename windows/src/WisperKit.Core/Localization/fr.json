@@ -1,8 +1,12 @@
 {
+  "%@ GB": "%@ Go",
+  "1.1 GB": "1,1 Go",
   "1.6 GB": "1,6 Go",
   "140 MB": "140 Mo",
   "3 GB": "3 Go",
+  "470 MB": "470 Mo",
   "480 MB": "480 Mo",
+  "550 MB": "550 Mo",
   "A chime when listening starts and ends.": "Signal au début et à la fin de l'écoute.",
   "A few steps and you can dictate anywhere. Everything stays on your Mac.": "Quelques étapes et tu pourras dicter partout. Tout reste sur ton Mac.",
   "A few steps and you can dictate anywhere. Everything stays on your PC.": "Quelques étapes et tu pourras dicter partout. Tout reste sur ton PC.",
