@@ -40,6 +40,7 @@ if [[ "${1:-}" == "--install" ]]; then
   while pgrep -x WisperKit >/dev/null; do sleep 0.2; done  # sinon open échoue (-600)
   rm -rf /Applications/WisperKit.app
   ditto --norsrc --noextattr build/WisperKit.app /Applications/WisperKit.app
-  open /Applications/WisperKit.app
+  # LaunchServices peut refuser l'ouverture (-600) juste après la fermeture : on réessaie.
+  for _ in 1 2 3 4 5; do open /Applications/WisperKit.app 2>/dev/null && break; sleep 1; done
   echo "→ /Applications/WisperKit.app lancé"
 fi
