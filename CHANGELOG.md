@@ -17,6 +17,6 @@ First public release.
 - Diagnostic log at `~/Library/Logs/WisperKit/wisperkit.log`.
 
 ### Installation
-- Signed DMG on GitHub Releases and a Homebrew cask (`brew install --cask eldriic/tap/wisperkit`).
+- Signed DMG on GitHub Releases and a Homebrew cask (`brew tap eldriic/tap && brew trust eldriic/tap && brew install --cask wisperkit`).
 
 [0.1.0]: https://github.com/eldriic/WisperKit/releases/tag/v0.1.0

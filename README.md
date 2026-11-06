@@ -48,7 +48,9 @@ Requirements: **macOS 15 Sequoia or later** on **Apple Silicon** (M1 or newer), 
 ### Homebrew (recommended)
 
 ```bash
-brew install --cask eldriic/tap/wisperkit
+brew tap eldriic/tap
+brew trust eldriic/tap        # Homebrew asks you to trust third-party taps once
+brew install --cask wisperkit
 ```
 
 Updates: `brew upgrade --cask wisperkit`.
@@ -194,6 +196,6 @@ WisperKit was **vibe-coded**: designed and built through conversation with an AI
 
 **WisperKit** est une app de dictée pour macOS, 100 % locale : un raccourci (<kbd>⌃</kbd> <kbd>⌥</kbd> <kbd>D</kbd>), tu parles, et le texte s'écrit tout seul là où se trouve ton curseur. La transcription utilise Whisper sur la puce de ton Mac : aucun son ne quitte l'ordinateur.
 
-**Installation** : `brew install --cask eldriic/tap/wisperkit`, ou télécharge le DMG de la [dernière version](https://github.com/eldriic/WisperKit/releases/latest), glisse l'app dans Applications, puis au premier lancement va dans **Réglages Système → Confidentialité et sécurité → Ouvrir quand même**. Une fenêtre d'accueil te guide ensuite : micro, Accessibilité (pour écrire au curseur), téléchargement du modèle (~1,6 Go, une seule fois). L'interface est en anglais par défaut : passe-la en français dans **Settings → General → Interface language**.
+**Installation** : `brew tap eldriic/tap && brew trust eldriic/tap && brew install --cask wisperkit`, ou télécharge le DMG de la [dernière version](https://github.com/eldriic/WisperKit/releases/latest), glisse l'app dans Applications, puis au premier lancement va dans **Réglages Système → Confidentialité et sécurité → Ouvrir quand même**. Une fenêtre d'accueil te guide ensuite : micro, Accessibilité (pour écrire au curseur), téléchargement du modèle (~1,6 Go, une seule fois). L'interface est en anglais par défaut : passe-la en français dans **Settings → General → Interface language**.
 
 Projet *vibe-codé* (construit en dialoguant avec un assistant de code IA), partagé tel quel sous licence MIT.
