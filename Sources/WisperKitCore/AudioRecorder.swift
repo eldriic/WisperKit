@@ -6,6 +6,12 @@ public protocol AudioRecording: AnyObject {
     func start() throws
     /// Arrête l'enregistrement et renvoie les échantillons 16 kHz mono.
     func stop() -> [Float]
+    /// Niveau sonore récent, normalisé 0…1 (pour l'indicateur à l'écran).
+    var level: Float { get }
+}
+
+public extension AudioRecording {
+    var level: Float { 0 }
 }
 
 public enum AudioRecorderError: LocalizedError {
@@ -72,6 +78,8 @@ public final class AudioRecorder: AudioRecording {
         }
     }
 
+    public var level: Float { buffer.level }
+
     public func stop() -> [Float] {
         if let engine {
             engine.inputNode.removeTap(onBus: 0)
@@ -86,13 +94,30 @@ public final class AudioRecorder: AudioRecording {
 final class SampleBuffer: @unchecked Sendable {
     private let lock = NSLock()
     private var samples: [Float] = []
+    private var lastLevel: Float = 0
+
+    var level: Float {
+        lock.lock(); defer { lock.unlock() }
+        return lastLevel
+    }
 
     func append(_ chunk: UnsafeBufferPointer<Float>) {
-        lock.lock(); samples.append(contentsOf: chunk); lock.unlock()
+        let level = Self.normalizedLevel(chunk)
+        lock.lock(); samples.append(contentsOf: chunk); lastLevel = level; lock.unlock()
     }
 
     func reset() {
-        lock.lock(); samples.removeAll(keepingCapacity: true); lock.unlock()
+        lock.lock(); samples.removeAll(keepingCapacity: true); lastLevel = 0; lock.unlock()
+    }
+
+    /// RMS du bloc en dB, ramené à 0…1 entre -50 dB (silence) et -10 dB (voix forte).
+    static func normalizedLevel(_ chunk: UnsafeBufferPointer<Float>) -> Float {
+        guard !chunk.isEmpty else { return 0 }
+        var sum: Float = 0
+        for s in chunk { sum += s * s }
+        let rms = (sum / Float(chunk.count)).squareRoot()
+        let db = 20 * log10(max(rms, 1e-7))
+        return min(max((db + 50) / 40, 0), 1)
     }
 
     func drain() -> [Float] {

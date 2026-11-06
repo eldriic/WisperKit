@@ -17,6 +17,10 @@ enum Snapshots {
             render(SettingsView(initialPage: page).environment(app), size: CGSize(width: 760, height: 540),
                    to: dir.appending(path: "settings-\(page.rawValue).png"))
         }
+        for (name, level, t) in [("hud-voix", 0.85, 1.3), ("hud-calme", 0.35, 2.1), ("hud-transcription", 0.18, 0.7)] {
+            render(HUDFrame(level: level, time: t).padding(30).background(Color(red: 0.11, green: 0.13, blue: 0.2)),
+                   size: CGSize(width: 220, height: 120), to: dir.appending(path: "\(name).png"))
+        }
         exit(0)
     }
 
@@ -55,6 +59,19 @@ enum Snapshots {
         guard let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds) else { return }
         host.cacheDisplay(in: host.bounds, to: rep)
         try? rep.representation(using: .png, properties: [:])?.write(to: url)
+    }
+}
+/// Image fixe du HUD (le vrai HUD est animé par TimelineView).
+private struct HUDFrame: View {
+    let level: Double
+    let time: Double
+
+    var body: some View {
+        Canvas { ctx, size in WaveRenderer.draw(in: &ctx, size: size, time: time, level: level) }
+            .frame(width: RecordingHUD.size.width, height: RecordingHUD.size.height)
+            .background(Capsule().fill(Color(white: 0.04).opacity(0.88)))
+            .overlay(Capsule().strokeBorder(.white.opacity(0.12), lineWidth: 1))
+            .clipShape(Capsule())
     }
 }
 #endif

@@ -111,6 +111,10 @@ struct GeneralPage: View {
                     SettingsRow(title: "Sons", description: "Signal au début et à la fin de l'écoute.") {
                         BlueSwitch(isOn: $app.sounds)
                     }
+                    SettingsRow(title: "Indicateur à l'écran",
+                                description: "Petites vagues au centre de l'écran pendant l'écoute et la transcription.") {
+                        BlueSwitch(isOn: $app.showHUD)
+                    }
                 }
             }
             VStack(alignment: .leading, spacing: 0) {

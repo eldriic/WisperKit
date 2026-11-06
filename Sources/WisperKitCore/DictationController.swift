@@ -42,6 +42,9 @@ public final class DictationController {
 
     public var isRecording: Bool { state == .recording }
 
+    /// Niveau micro 0…1 pendant l'écoute (non observé : à lire à chaque image).
+    public var audioLevel: Float { state == .recording ? recorder.level : 0 }
+
     /// Mode bascule : démarre, ou arrête et transcrit.
     public func toggle() {
         if state == .recording { stop() } else { start() }

@@ -40,6 +40,7 @@ final class AppModel {
     let dictation: DictationController
     private let transcriber = Transcriber()
     private let defaults = UserDefaults.standard
+    @ObservationIgnored private lazy var hud = RecordingHUD(dictation: dictation)
 
     private(set) var modelState: ModelState = .missing
     /// Téléchargements en cours depuis la page Modèle (hors modèle actif).
@@ -57,6 +58,7 @@ final class AppModel {
     var sounds: Bool { didSet { defaults.set(sounds, forKey: "sounds") } }
     var mode: TriggerMode { didSet { defaults.set(mode.rawValue, forKey: "mode") } }
     var escapeCancels: Bool { didSet { defaults.set(escapeCancels, forKey: "escapeCancels") } }
+    var showHUD: Bool { didSet { defaults.set(showHUD, forKey: "showHUD") } }
 
     var launchAtLogin: Bool {
         get { _ = launchTick; return SMAppService.mainApp.status == .enabled }
@@ -78,6 +80,7 @@ final class AppModel {
         defaults.register(defaults: [
             "modelID": WhisperModel.default.id, "language": "fr", "autoPaste": true,
             "restoreClipboard": true, "sounds": true, "mode": TriggerMode.toggle.rawValue, "escapeCancels": true,
+            "showHUD": true,
         ])
         modelID = defaults.string(forKey: "modelID") ?? WhisperModel.default.id
         language = defaults.string(forKey: "language") ?? "fr"
@@ -86,6 +89,7 @@ final class AppModel {
         sounds = defaults.bool(forKey: "sounds")
         mode = TriggerMode(rawValue: defaults.string(forKey: "mode") ?? "") ?? .toggle
         escapeCancels = defaults.bool(forKey: "escapeCancels")
+        showHUD = defaults.bool(forKey: "showHUD")
 
         dictation = DictationController(recorder: AudioRecorder(), transcriber: transcriber, output: TextInserter())
         dictation.language = language
@@ -129,15 +133,19 @@ final class AppModel {
         switch event {
         case .started:
             if escapeCancels { KeyboardShortcuts.enable(.cancelDictation) }
+            if showHUD { hud.show() }
             play("Tink")
         case .stopped:
             KeyboardShortcuts.disable(.cancelDictation)
             play("Pop")
         case .delivered:
+            hud.hide()
             play("Glass")
         case .cancelled:
+            hud.hide()
             KeyboardShortcuts.disable(.cancelDictation)
         case .failed:
+            hud.hide()
             KeyboardShortcuts.disable(.cancelDictation)
             play("Basso")
         }

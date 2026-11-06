@@ -186,3 +186,17 @@ struct IntegrationTests {
         #expect(!ModelStore.isInstalled(.base, base: base))
     }
 }
+
+@Suite struct LevelTests {
+    @Test func silenceIsZeroAndLoudIsOne() {
+        let silence = [Float](repeating: 0, count: 1600)
+        let loud = (0..<1600).map { Float(sin(Double($0) * 0.1)) * 0.8 }
+        let speech = (0..<1600).map { Float(sin(Double($0) * 0.1)) * 0.03 }
+        silence.withUnsafeBufferPointer { #expect(SampleBuffer.normalizedLevel($0) == 0) }
+        loud.withUnsafeBufferPointer { #expect(SampleBuffer.normalizedLevel($0) == 1) }
+        speech.withUnsafeBufferPointer {
+            let l = SampleBuffer.normalizedLevel($0)
+            #expect(l > 0.2 && l < 0.8)
+        }
+    }
+}
