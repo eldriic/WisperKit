@@ -1,5 +1,5 @@
 import Foundation
-import WhisperKit
+@preconcurrency import WhisperKit
 
 /// Moteur de transcription abstrait (permet de tester le contrôleur sans modèle).
 public protocol Transcribing: Sendable {
