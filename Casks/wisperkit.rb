@@ -1,6 +1,6 @@
 cask "wisperkit" do
   version "0.1.0"
-  sha256 "900e9407307f71e629241c3b85a60f64dca334363b68bc30e85326a7fc99fa49"
+  sha256 "eaaf06e2002e84a333880d6b4e73a41f6982f46c06416bffbaf47537b844e3f0"
 
   url "https://github.com/eldriic/WisperKit/releases/download/v#{version}/WisperKit-#{version}.dmg"
   name "WisperKit"
