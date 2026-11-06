@@ -4,17 +4,18 @@
 
 # WisperKit
 
-**Private, on-device dictation for macOS — press a shortcut, speak, and your words appear wherever your cursor is.**
+**Private, on-device dictation for macOS and Windows — press a shortcut, speak, and your words appear wherever your cursor is.**
 
 [![Release](https://img.shields.io/github/v/release/eldriic/WisperKit?style=flat-square)](https://github.com/eldriic/WisperKit/releases/latest)
 [![CI](https://img.shields.io/github/actions/workflow/status/eldriic/WisperKit/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/eldriic/WisperKit/actions/workflows/ci.yml)
 ![macOS 15+](https://img.shields.io/badge/macOS-15%2B-black?style=flat-square&logo=apple)
+![Windows 10/11](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?style=flat-square&logo=windows)
 ![Swift 6](https://img.shields.io/badge/Swift-6-F05138?style=flat-square&logo=swift&logoColor=white)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 
 <img src="docs/images/hud-voix.png" width="420" alt="WisperKit recording indicator">
 
-[Install](#install) · [Usage](#usage) · [Privacy](#privacy) · [Troubleshooting](#troubleshooting) · [Build from source](#build-from-source) · [En français](#en-français)
+[Install](#install) · [Windows](#windows) · [Usage](#usage) · [Privacy](#privacy) · [Troubleshooting](#troubleshooting) · [Build from source](#build-from-source) · [En français](#en-français)
 
 </div>
 
@@ -78,6 +79,20 @@ A welcome window walks you through setup:
 4. Put your cursor anywhere, press <kbd>⌃</kbd> <kbd>⌥</kbd> <kbd>D</kbd>, speak, press it again. Done.
 
 <p align="center"><img src="docs/images/settings-permissions.png" width="560" alt="Welcome and permissions"></p>
+
+## Windows
+
+WisperKit for Windows is a native tray app with the same features: global shortcut (<kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>D</kbd> by default), auto-insert or clipboard-free typing, the wave indicator, English/French interface and the same models via [whisper.cpp](https://github.com/ggerganov/whisper.cpp) — on the CPU or the GPU through Vulkan (NVIDIA, AMD, Intel).
+
+Requirements: **Windows 10 (1809) or 11**, x64 or ARM64, ~1 GB of free disk space for the default model.
+
+1. Download `WisperKit-Setup-x.y.z-x64.exe` (or `-arm64.exe`) from the [latest release](https://github.com/eldriic/WisperKit/releases/latest) and run it. No administrator rights needed.
+2. The installer isn't signed yet, so **SmartScreen** may warn you once: click **More info → Run anyway**.
+3. A welcome window opens: the model (`large-v3-turbo`, ~550 MB) downloads once, then press <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>D</kbd> anywhere.
+
+WisperKit lives in the notification area (click the icon for the menu). No Accessibility permission is needed on Windows; if the microphone is blocked, the welcome window links to **Settings → Privacy → Microphone**. Text can't be inserted into apps running as administrator. Diagnostic log: `%LOCALAPPDATA%\WisperKit\Logs\wisperkit.log`.
+
+`winget install eldriic.WisperKit` will be available once the package is accepted in the winget repository.
 
 ## Usage
 
@@ -147,7 +162,7 @@ Notarization requires a paid Apple Developer account. WisperKit releases are sig
 
 ## Build from source
 
-Requires Xcode 16+ and [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`).
+**macOS** — requires Xcode 16+ and [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`).
 
 ```bash
 git clone https://github.com/eldriic/WisperKit.git && cd WisperKit
@@ -156,6 +171,16 @@ swift test                     # core tests
 ```
 
 `build.sh` signs with a local code-signing certificate named **WisperKit Dev** if one exists in your keychain (otherwise ad-hoc). A stable signature lets macOS keep the Accessibility permission between builds; with ad-hoc signing you'll have to grant it again after each build.
+
+**Windows** — requires the [.NET 10 SDK](https://dotnet.microsoft.com/download). The app can be built (not run) from macOS too.
+
+```bash
+cd windows
+dotnet test tests/WisperKit.Core.Tests
+dotnet publish src/WisperKit.App -c Release -r win-x64 --self-contained -o publish/x64
+```
+
+The installer is built with [Inno Setup](https://jrsoftware.org/isinfo.php) (`installer/WisperKit.iss`) by the Windows CI, which also renders every screen to PNG (`WisperKit.exe --snapshots <dir>`). French translations are shared with the macOS app: `python3 windows/Scripts/sync-strings.py`.
 
 <details>
 <summary>Project layout</summary>
@@ -166,6 +191,7 @@ App/WisperKit/           SwiftUI menu bar app, settings window, recording indica
 Tests/                   Swift Testing suites (WK_INTEGRATION=1 runs a real transcription)
 Scripts/                 build.sh (build/install) and release.sh (DMG + Homebrew cask)
 Casks/                   Homebrew cask template
+windows/                 Windows app: WisperKit.Core (portable, tested on macOS too), WisperKit.App (WPF), installer, winget
 ```
 
 Debug builds also accept `--snapshots <dir>` (renders every screen to PNG) and `--selftest <seconds> [--paste <bundle id>]` (microphone → model → clipboard, end to end).
@@ -185,6 +211,7 @@ WisperKit was **vibe-coded**: designed and built through conversation with an AI
 - [Whisper](https://github.com/openai/whisper) by OpenAI — speech recognition models (MIT)
 - [WhisperKit](https://github.com/argmaxinc/WhisperKit) by Argmax — Core ML inference on Apple Silicon (MIT)
 - [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) by Sindre Sorhus — global shortcut recorder (MIT)
+- Windows: [whisper.cpp](https://github.com/ggerganov/whisper.cpp) (MIT), [Whisper.net](https://github.com/sandrohanea/whisper.net) (MIT), [NAudio](https://github.com/naudio/NAudio) (MIT), [H.NotifyIcon](https://github.com/HavenDV/H.NotifyIcon) (MIT)
 
 ## License
 
@@ -194,8 +221,10 @@ WisperKit was **vibe-coded**: designed and built through conversation with an AI
 
 ## En français
 
-**WisperKit** est une app de dictée pour macOS, 100 % locale : un raccourci (<kbd>⌃</kbd> <kbd>⌥</kbd> <kbd>D</kbd>), tu parles, et le texte s'écrit tout seul là où se trouve ton curseur. La transcription utilise Whisper sur la puce de ton Mac : aucun son ne quitte l'ordinateur.
+**WisperKit** est une app de dictée pour macOS et Windows, 100 % locale : un raccourci (<kbd>⌃</kbd> <kbd>⌥</kbd> <kbd>D</kbd>), tu parles, et le texte s'écrit tout seul là où se trouve ton curseur. La transcription utilise Whisper sur la puce de ton Mac : aucun son ne quitte l'ordinateur.
 
 **Installation** : `brew tap eldriic/tap && brew trust eldriic/tap && brew install --cask wisperkit`, ou télécharge le DMG de la [dernière version](https://github.com/eldriic/WisperKit/releases/latest), glisse l'app dans Applications, puis au premier lancement va dans **Réglages Système → Confidentialité et sécurité → Ouvrir quand même**. Une fenêtre d'accueil te guide ensuite : micro, Accessibilité (pour écrire au curseur), téléchargement du modèle (~1,6 Go, une seule fois). L'interface est en anglais par défaut : passe-la en français dans **Settings → General → Interface language**.
+
+**Windows** : télécharge `WisperKit-Setup-x.y.z-x64.exe` depuis la [dernière version](https://github.com/eldriic/WisperKit/releases/latest), lance-le (sans droits administrateur), puis si SmartScreen s'affiche : **Informations complémentaires → Exécuter quand même**. Raccourci par défaut : <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>D</kbd>.
 
 Projet *vibe-codé* (construit en dialoguant avec un assistant de code IA), partagé tel quel sous licence MIT.
