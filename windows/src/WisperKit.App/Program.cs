@@ -29,7 +29,7 @@ internal static class Program
             return 0;
         }
 
-        var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+        var app = CreateApplication();
         app.DispatcherUnhandledException += (_, e) =>
         {
             DiagnosticLog.Write($"exception : {e.Exception}");
@@ -86,6 +86,16 @@ internal static class Program
         return app.Run();
     }
 
+    /// <summary>Thème Fluent sombre de WPF : barres de défilement, menus et progression sombres.</summary>
+    internal static Application CreateApplication()
+    {
+        var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+#pragma warning disable WPF0001 // API ThemeMode marquée expérimentale
+        app.ThemeMode = ThemeMode.Dark;
+#pragma warning restore WPF0001
+        return app;
+    }
+
     private static string? Option(string[] args, string name)
     {
         var i = Array.IndexOf(args, name);
@@ -100,7 +110,7 @@ internal static class Snapshots
     public static int Render(string directory, bool firstLaunch)
     {
         System.IO.Directory.CreateDirectory(directory);
-        var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+        var app = Program.CreateApplication();
         using var controller = new AppController(renderOnly: true);
         foreach (var lang in new[] { "en", "fr" })
         {
