@@ -1,0 +1,23 @@
+# Swift / SPM
+.build/
+.swiftpm/
+
+# Xcode
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+DerivedData/
+*.xcuserstate
+
+# macOS
+.DS_Store
+
+*.png.tmp
+
+# Divers
+*.log
+
+# Généré par XcodeGen (source = project.yml)
+*.xcodeproj
+build/
+dist/
+.claude/settings.local.json

@@ -1,0 +1,49 @@
+# Projet Xcode de l'app WisperKit (barre de menus SwiftUI), généré par XcodeGen.
+#   xcodegen generate                      -> WisperKit.xcodeproj
+#   ./Scripts/build.sh                     -> build/WisperKit.app
+# Le cœur reste le package SPM local (WisperKitCore) ; l'app en dépend.
+name: WisperKit
+options:
+  bundleIdPrefix: com.eldriic
+  deploymentTarget:
+    macOS: "15.0"
+  createIntermediateGroups: true
+
+packages:
+  WisperKitCore:
+    path: .
+  KeyboardShortcuts:
+    url: https://github.com/sindresorhus/KeyboardShortcuts
+    from: "3.0.0"
+
+targets:
+  WisperKit:
+    type: application
+    platform: macOS
+    sources:
+      - App/WisperKit
+    dependencies:
+      - package: WisperKitCore
+        product: WisperKitCore
+      - package: KeyboardShortcuts
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.eldriic.wisperkit
+        PRODUCT_NAME: WisperKit
+        GENERATE_INFOPLIST_FILE: YES
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "6.0"
+        # App de barre de menus : pas d'icône dans le Dock.
+        INFOPLIST_KEY_LSUIElement: YES
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "WisperKit enregistre ta voix pour la transcrire localement. Rien ne quitte le Mac."
+        INFOPLIST_KEY_CFBundleDisplayName: WisperKit
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.productivity
+        # Pas de sandbox : l'envoi de ⌘V vers d'autres apps (CGEvent) y est interdit.
+        ENABLE_APP_SANDBOX: NO
+        ENABLE_HARDENED_RUNTIME: NO
+        # Signature ad-hoc par défaut ; surcharger avec WK_SIGN_IDENTITY (cf. Scripts/build.sh)
+        # pour garder l'autorisation Accessibilité entre deux builds.
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+        DEVELOPMENT_TEAM: ""
