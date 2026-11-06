@@ -1,0 +1,92 @@
+name: Windows
+
+on:
+  push:
+    branches: [main, "feat/**"]
+    paths: ["windows/**", ".github/workflows/windows.yml"]
+  pull_request:
+    paths: ["windows/**", ".github/workflows/windows.yml"]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: windows
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Version
+        id: version
+        run: |
+          $v = if ("${{ github.event_name }}" -eq "release") { "${{ github.event.release.tag_name }}".TrimStart("v") } else { "0.2.0" }
+          "value=$v" >> $env:GITHUB_OUTPUT
+
+      - name: Tests
+        run: dotnet test tests/WisperKit.Core.Tests -c Release
+
+      - name: Publish (x64, arm64)
+        run: |
+          foreach ($arch in "x64", "arm64") {
+            dotnet publish src/WisperKit.App -c Release -r "win-$arch" --self-contained `
+              -p:Version=${{ steps.version.outputs.value }} -o "publish/$arch"
+          }
+
+      - name: Screenshots
+        run: |
+          $p = Start-Process -FilePath publish/x64/WisperKit.exe -ArgumentList "--snapshots", "$PWD/snapshots", "--first-launch" -PassThru
+          if (-not $p.WaitForExit(120000)) { $p.Kill(); throw "captures : délai dépassé" }
+          if ($p.ExitCode -ne 0) { throw "captures : code $($p.ExitCode)" }
+          Get-ChildItem snapshots | Format-Table Name, Length
+
+      - name: Installers
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Null }
+          foreach ($arch in "x64", "arm64") {
+            & $iscc /Qp "/DAppVersion=${{ steps.version.outputs.value }}" "/DArch=$arch" installer/WisperKit.iss
+            if ($LASTEXITCODE -ne 0) { throw "ISCC $arch : $LASTEXITCODE" }
+          }
+          Get-ChildItem dist | ForEach-Object { "{0}  {1:N1} Mo  {2}" -f $_.Name, ($_.Length / 1MB), (Get-FileHash $_.FullName).Hash }
+
+      - name: Winget manifests
+        run: |
+          $v = "${{ steps.version.outputs.value }}"
+          $x64 = (Get-FileHash "dist/WisperKit-Setup-$v-x64.exe").Hash
+          $arm = (Get-FileHash "dist/WisperKit-Setup-$v-arm64.exe").Hash
+          python Scripts/winget-manifest.py $v $x64 $arm
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wisperkit-windows-${{ steps.version.outputs.value }}
+          path: |
+            windows/dist/*.exe
+            windows/winget/manifests/**
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: snapshots
+          path: windows/snapshots/*.png
+
+      - name: Attach installers to the release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" dist/*.exe --clobber

@@ -1,0 +1,20 @@
+/* Textes propres à la version Windows (le reste vient de la version macOS). */
+"About" = "À propos";
+"A few steps and you can dictate anywhere. Everything stays on your PC." = "Quelques étapes et tu pourras dicter partout. Tout reste sur ton PC.";
+"Audio is transcribed on your PC and never leaves it. The only download is the model." = "L'audio est transcrit sur ton PC et ne le quitte jamais. Le seul téléchargement est le modèle.";
+"Copied · Ctrl+V to paste" = "Copié · Ctrl+V pour coller";
+"Diagnostic log" = "Journal de diagnostic";
+"Microphone blocked in Windows privacy settings" = "Micro bloqué dans les paramètres de confidentialité Windows";
+"Open" = "Ouvrir";
+"Open microphone settings" = "Ouvrir les paramètres du micro";
+"Press the new shortcut…" = "Appuie sur le nouveau raccourci…";
+"Privacy" = "Confidentialité";
+"Put your cursor in any app, press %@, speak, then press it again." = "Place le curseur dans n'importe quelle app, appuie sur %@, parle, puis réappuie.";
+"Start with Windows" = "Lancer avec Windows";
+"The transcription model is downloading (%d%%, about 550 MB, one time only)." = "Le modèle de transcription se télécharge (%d %%, environ 550 Mo, une seule fois).";
+"The transcription model will be downloaded (about 550 MB, one time only)." = "Le modèle de transcription va être téléchargé (environ 550 Mo, une seule fois).";
+"Version %@" = "Version %@";
+"Windows blocks the microphone for desktop apps: allow it in the privacy settings." = "Windows bloque le micro pour les applications de bureau : autorise-le dans les paramètres de confidentialité.";
+"WisperKit is vibe-coded: built through conversation with an AI coding assistant. MIT license — Whisper by OpenAI, whisper.cpp, Whisper.net, NAudio, H.NotifyIcon." = "WisperKit est vibe-codé : construit en dialoguant avec un assistant de code IA. Licence MIT — Whisper (OpenAI), whisper.cpp, Whisper.net, NAudio, H.NotifyIcon.";
+"WisperKit opens when you sign in." = "WisperKit s'ouvre quand tu te connectes.";
+"Your microphone is ready. Windows may ask for permission the first time." = "Ton micro est prêt. Windows peut demander l'autorisation la première fois.";
