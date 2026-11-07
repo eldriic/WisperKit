@@ -75,6 +75,7 @@ internal sealed class AppController : IDisposable
     private void ApplySettings()
     {
         Dictation.Language = Settings.DictationLanguage;
+        Dictation.TranslateToEnglish = Settings.TranslateToEnglish;
         Dictation.AutoInsert = Settings.AutoInsert;
         Dictation.InsertionMethod = Settings.NeverUseClipboard ? InsertionMethod.Type : InsertionMethod.Paste;
         Dictation.RestoreClipboard = Settings.RestoreClipboard;

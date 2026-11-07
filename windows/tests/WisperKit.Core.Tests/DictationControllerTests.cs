@@ -138,3 +138,34 @@ public class AudioLevelTests
         Assert.InRange(AudioFormat.NormalizedLevel(speech), 0.2f, 0.8f);
     }
 }
+
+public class DecodingPlanTests
+{
+    [Fact]
+    public void TranscribesInTheSpokenLanguageByDefault()
+    {
+        Assert.Equal(new DecodingPlan(false, null), DecodingPlan.Make("auto", false, true));
+        Assert.Equal(new DecodingPlan(false, "fr"), DecodingPlan.Make("fr", false, false));
+    }
+
+    [Fact]
+    public void TranslatesWithWhisperTaskWhenTheModelSupportsIt()
+    {
+        Assert.Equal(new DecodingPlan(true, null), DecodingPlan.Make("auto", true, false));
+        Assert.Equal(new DecodingPlan(true, "fr"), DecodingPlan.Make("fr", true, false));
+    }
+
+    [Fact]
+    public void TurboForcesEnglishOutputInstead() =>
+        Assert.Equal(new DecodingPlan(false, "en"), DecodingPlan.Make("fr", true, true));
+
+    [Fact]
+    public async Task ControllerPassesTranslateFlag()
+    {
+        var transcriber = new FakeTranscriber();
+        var c = new DictationController(new FakeRecorder(), transcriber, new FakeOutput()) { TranslateToEnglish = true };
+        c.Start(); c.Stop();
+        await c.WaitForCompletionAsync();
+        Assert.True(transcriber.LastTranslate);
+    }
+}

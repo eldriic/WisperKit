@@ -20,7 +20,9 @@ public final class DictationController {
     public private(set) var lastText: String?
 
     // Réglages appliqués à chaque dictée (alimentés par l'app).
-    public var language = "fr"
+    public var language = "auto"
+    /// Produit du texte anglais quelle que soit la langue parlée.
+    public var translateToEnglish = false
     public var autoPaste = true
     public var insertionMethod: InsertionMethod = .paste
     public var restoreClipboard = true
@@ -74,10 +76,10 @@ public final class DictationController {
             return
         }
         state = .transcribing
-        let lang = language
+        let lang = language, translate = translateToEnglish
         task = Task { [transcriber] in
             do {
-                let raw = try await transcriber.transcribe(samples, language: lang)
+                let raw = try await transcriber.transcribe(samples, language: lang, translate: translate)
                 self.finish(raw)
             } catch is CancellationError {
                 self.state = .idle

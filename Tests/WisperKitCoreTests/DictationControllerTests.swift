@@ -25,7 +25,7 @@ struct FakeTranscriber: Transcribing {
     var error: Error?
     var delay: Duration = .zero
 
-    func transcribe(_ samples: [Float], language: String) async throws -> String {
+    func transcribe(_ samples: [Float], language: String, translate: Bool) async throws -> String {
         try await Task.sleep(for: delay)
         if let error { throw error }
         return text
@@ -163,9 +163,27 @@ struct IntegrationTests {
         try await t.load(.base)
         let clock = ContinuousClock()
         var text = ""
-        let elapsed = try await clock.measure { text = try await t.transcribe(samples, language: "fr") }
+        let elapsed = try await clock.measure { text = try await t.transcribe(samples, language: "fr", translate: false) }
         print("Transcription (\(elapsed)): \(text)")
         #expect(TextCleaner.clean(text).lowercased().contains("budget"))
+    }
+
+    /// Tâche « translate » de Whisper (modèles non turbo) : parole française → texte anglais.
+    @Test func translatesFrenchSpeechToEnglish() async throws {
+        let dir = FileManager.default.temporaryDirectory.appending(path: "wk-tr-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let wav = dir.appending(path: "phrase.wav")
+        let say = Process()
+        say.executableURL = URL(filePath: "/usr/bin/say")
+        say.arguments = ["-v", "Thomas", "-o", wav.path, "--data-format=LEF32@16000",
+                         "Bonjour, je voudrais réserver une table pour ce soir."]
+        try say.run(); say.waitUntilExit()
+        let t = Transcriber()
+        try await t.load(.base)
+        let text = try await t.transcribe(try Self.readFloats(wav), language: "fr", translate: true)
+        print("Traduction : \(text)")
+        let lower = text.lowercased()
+        #expect(lower.contains("table") && (lower.contains("hello") || lower.contains("would") || lower.contains("tonight")))
     }
 
     static func readFloats(_ url: URL) throws -> [Float] {
@@ -232,5 +250,26 @@ struct IntegrationTests {
         #expect(pb.string(forType: .string) == "secret")
         #expect(pb.types?.contains(NSPasteboard.PasteboardType("org.nspasteboard.TransientType")) == true)
         pb.releaseGlobally()
+    }
+}
+
+@Suite struct DecodingPlanTests {
+    @Test func transcribesInTheSpokenLanguageByDefault() {
+        #expect(DecodingPlan.make(language: "auto", translate: false, modelIsTurbo: true)
+                == DecodingPlan(translateTask: false, language: nil))
+        #expect(DecodingPlan.make(language: "fr", translate: false, modelIsTurbo: false)
+                == DecodingPlan(translateTask: false, language: "fr"))
+    }
+
+    @Test func translatesWithWhisperTaskWhenTheModelSupportsIt() {
+        #expect(DecodingPlan.make(language: "auto", translate: true, modelIsTurbo: false)
+                == DecodingPlan(translateTask: true, language: nil))
+        #expect(DecodingPlan.make(language: "fr", translate: true, modelIsTurbo: false)
+                == DecodingPlan(translateTask: true, language: "fr"))
+    }
+
+    @Test func turboForcesEnglishOutputInstead() {
+        #expect(DecodingPlan.make(language: "fr", translate: true, modelIsTurbo: true)
+                == DecodingPlan(translateTask: false, language: "en"))
     }
 }

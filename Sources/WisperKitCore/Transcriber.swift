@@ -3,7 +3,24 @@ import Foundation
 
 /// Moteur de transcription abstrait (permet de tester le contrôleur sans modèle).
 public protocol Transcribing: Sendable {
-    func transcribe(_ samples: [Float], language: String) async throws -> String
+    /// `language` : code ISO ou "auto" ; `translate` : produire du texte anglais quelle que soit la langue parlée.
+    func transcribe(_ samples: [Float], language: String, translate: Bool) async throws -> String
+}
+
+/// Comment décoder : transcrire dans la langue parlée, ou traduire en anglais.
+public struct DecodingPlan: Equatable, Sendable {
+    public var translateTask: Bool
+    /// nil = langue détectée automatiquement.
+    public var language: String?
+
+    /// `large-v3-turbo` n'a pas été entraîné pour la tâche « translate » de Whisper : on lui impose
+    /// alors la sortie anglaise (il traduit en écrivant directement en anglais), ce qui marche bien en pratique.
+    public static func make(language: String, translate: Bool, modelIsTurbo: Bool) -> DecodingPlan {
+        let source: String? = language == "auto" ? nil : language
+        guard translate else { return DecodingPlan(translateTask: false, language: source) }
+        if modelIsTurbo { return DecodingPlan(translateTask: false, language: "en") }
+        return DecodingPlan(translateTask: true, language: source)
+    }
 }
 
 public enum TranscriberError: LocalizedError {
@@ -53,11 +70,13 @@ public actor Transcriber: Transcribing {
         loadedModel = nil
     }
 
-    public func transcribe(_ samples: [Float], language: String) async throws -> String {
+    public func transcribe(_ samples: [Float], language: String, translate: Bool) async throws -> String {
         guard let pipe else { throw TranscriberError.notLoaded }
-        let auto = language == "auto"
-        let options = DecodingOptions(task: .transcribe, language: auto ? nil : language, temperature: 0,
-                                      usePrefillPrompt: !auto, detectLanguage: auto,
+        let plan = DecodingPlan.make(language: language, translate: translate,
+                                     modelIsTurbo: loadedModel?.id.contains("turbo") ?? false)
+        let auto = plan.language == nil
+        let options = DecodingOptions(task: plan.translateTask ? .translate : .transcribe, language: plan.language,
+                                      temperature: 0, usePrefillPrompt: !auto, detectLanguage: auto,
                                       skipSpecialTokens: true, withoutTimestamps: true)
         let results = try await pipe.transcribe(audioArray: samples, decodeOptions: options)
         return results.map(\.text).joined(separator: " ")

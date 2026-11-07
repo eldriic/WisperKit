@@ -35,7 +35,7 @@ enum ModelState: Equatable {
 @Observable
 final class AppModel {
     static let languages: [(id: String, label: String)] = [
-        ("en", "English"), ("fr", "French"), ("auto", "Auto-detect"),
+        ("auto", "Auto-detect"), ("en", "English"), ("fr", "French"),
     ]
 
     let dictation: DictationController
@@ -78,6 +78,9 @@ final class AppModel {
     var mode: TriggerMode { didSet { defaults.set(mode.rawValue, forKey: "mode") } }
     var escapeCancels: Bool { didSet { defaults.set(escapeCancels, forKey: "escapeCancels") } }
     var showHUD: Bool { didSet { defaults.set(showHUD, forKey: "showHUD") } }
+    var translateToEnglish: Bool {
+        didSet { defaults.set(translateToEnglish, forKey: "translateToEnglish"); dictation.translateToEnglish = translateToEnglish }
+    }
 
     var launchAtLogin: Bool {
         get { _ = launchTick; return SMAppService.mainApp.status == .enabled }
@@ -97,13 +100,13 @@ final class AppModel {
 
     init() {
         defaults.register(defaults: [
-            "modelID": WhisperModel.default.id, "language": "fr", "autoPaste": true,
+            "modelID": WhisperModel.default.id, "language": "auto", "autoPaste": true,
             "restoreClipboard": true, "sounds": true, "mode": TriggerMode.toggle.rawValue, "escapeCancels": true,
             "neverUseClipboard": false,
-            "showHUD": true,
+            "showHUD": true, "translateToEnglish": false,
         ])
         modelID = defaults.string(forKey: "modelID") ?? WhisperModel.default.id
-        language = defaults.string(forKey: "language") ?? "fr"
+        language = defaults.string(forKey: "language") ?? "auto"
         autoPaste = defaults.bool(forKey: "autoPaste")
         restoreClipboard = defaults.bool(forKey: "restoreClipboard")
         sounds = defaults.bool(forKey: "sounds")
@@ -117,9 +120,11 @@ final class AppModel {
             defaults.set(true, forKey: "onboarded")
         }
         showHUD = defaults.bool(forKey: "showHUD")
+        translateToEnglish = defaults.bool(forKey: "translateToEnglish")
 
         dictation = DictationController(recorder: AudioRecorder(), transcriber: transcriber, output: TextInserter())
         dictation.language = language
+        dictation.translateToEnglish = translateToEnglish
         dictation.autoPaste = autoPaste
         dictation.restoreClipboard = restoreClipboard
         dictation.insertionMethod = neverUseClipboard ? .type : .paste

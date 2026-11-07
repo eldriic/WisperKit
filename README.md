@@ -32,6 +32,7 @@ No account, no subscription, no audio ever leaves your Mac.
 - **Toggle or push-to-talk** — press once to start and once to stop, or hold the shortcut while you speak. <kbd>Esc</kbd> cancels.
 - **Live indicator** — a small floating pill with waves that follow your voice, a timer while listening and a distinct state while transcribing.
 - **Multiple models** — switch between `large-v3-turbo`, `large-v3`, `small` and `base` from the settings, downloads included.
+- **Speak any language, get English text** — turn on **Translate to English** and WisperKit writes your words in English, whatever language you speak (French, Spanish, German… all the [languages Whisper understands](https://github.com/openai/whisper#available-models-and-languages)). Leave it off and the text stays in the language you spoke, detected automatically.
 - **Clipboard-free mode** — optionally types the text key by key so your clipboard is never touched (pasted text is also flagged so clipboard managers skip it).
 - **English and French interface** — switch instantly in the settings.
 - **Native and light** — SwiftUI menu bar app, no Dock icon, no Python, no Electron.
@@ -103,7 +104,7 @@ WisperKit lives in the notification area (click the icon for the menu). No Acces
 | Push-to-talk | **Settings → Keyboard → Mode → Hold** |
 | Copy the last dictation | Menu bar → **Last dictation** |
 
-Settings cover the interface language (English or French), auto-insert, clipboard-free typing, clipboard restore, dictation language (English, French or auto-detect), sounds, the on-screen indicator and launch at login.
+Settings cover the interface language (English or French), auto-insert, clipboard-free typing, clipboard restore, dictation language (auto-detect by default, or forced English/French), translation to English, sounds, the on-screen indicator and launch at login.
 
 ### Models
 
@@ -150,6 +151,13 @@ Check the menu bar icon: the model may still be downloading or loading. Another 
 <summary><b>Some words are wrong</b></summary>
 
 Force the language in **Settings → General → Dictation language** instead of auto-detect, and prefer `large-v3-turbo` or `large-v3`. A good microphone close to your mouth helps a lot.
+
+</details>
+
+<details>
+<summary><b>The translation to English isn't perfect</b></summary>
+
+`large-v3` gives the best translations. The default `large-v3-turbo` wasn't trained on Whisper's translation task, so WisperKit makes it write directly in English instead — it works well for everyday sentences but can be less faithful on long or technical dictations.
 
 </details>
 
@@ -224,6 +232,8 @@ WisperKit was **vibe-coded**: designed and built through conversation with an AI
 **WisperKit** est une app de dictée pour macOS et Windows, 100 % locale : un raccourci (<kbd>⌃</kbd> <kbd>⌥</kbd> <kbd>D</kbd>), tu parles, et le texte s'écrit tout seul là où se trouve ton curseur. La transcription utilise Whisper sur la puce de ton Mac : aucun son ne quitte l'ordinateur.
 
 **Installation** : `brew tap eldriic/tap && brew trust eldriic/tap && brew install --cask wisperkit`, ou télécharge le DMG de la [dernière version](https://github.com/eldriic/WisperKit/releases/latest), glisse l'app dans Applications, puis au premier lancement va dans **Réglages Système → Confidentialité et sécurité → Ouvrir quand même**. Une fenêtre d'accueil te guide ensuite : micro, Accessibilité (pour écrire au curseur), téléchargement du modèle (~1,6 Go, une seule fois). L'interface est en anglais par défaut : passe-la en français dans **Settings → General → Interface language**.
+
+**Traduction** : active **Traduire en anglais** et parle dans ta langue, le texte s'écrit directement en anglais. Option désactivée, le texte reste dans la langue parlée (détectée automatiquement).
 
 **Windows** : télécharge `WisperKit-Setup-x.y.z-x64.exe` depuis la [dernière version](https://github.com/eldriic/WisperKit/releases/latest), lance-le (sans droits administrateur), puis si SmartScreen s'affiche : **Informations complémentaires → Exécuter quand même**. Raccourci par défaut : <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>D</kbd>.
 

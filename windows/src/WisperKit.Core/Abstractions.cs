@@ -13,7 +13,22 @@ public interface IAudioRecorder
 /// <summary>Moteur de transcription.</summary>
 public interface ITranscriber
 {
-    Task<string> TranscribeAsync(float[] samples, string language, CancellationToken cancellationToken);
+    /// <param name="language">Code ISO ou "auto".</param>
+    /// <param name="translate">Produire du texte anglais quelle que soit la langue parlée.</param>
+    Task<string> TranscribeAsync(float[] samples, string language, bool translate, CancellationToken cancellationToken);
+}
+
+/// <summary>Comment décoder : transcrire dans la langue parlée, ou traduire en anglais (même règle que macOS).</summary>
+public readonly record struct DecodingPlan(bool TranslateTask, string? Language)
+{
+    /// <summary><c>large-v3-turbo</c> n'a pas été entraîné pour la tâche « translate » : on lui impose
+    /// la sortie anglaise, ce qui le fait traduire en écrivant directement en anglais.</summary>
+    public static DecodingPlan Make(string language, bool translate, bool modelIsTurbo)
+    {
+        var source = language == "auto" ? null : language;
+        if (!translate) return new(false, source);
+        return modelIsTurbo ? new(false, "en") : new(true, source);
+    }
 }
 
 /// <summary>Façon d'écrire le texte dans l'application active.</summary>

@@ -32,6 +32,8 @@ public class SettingsTests
         var path = Path.Combine(Path.GetTempPath(), "wk-set-" + Guid.NewGuid() + ".json");
         var fresh = AppSettings.Load(path);
         Assert.Equal("en", fresh.InterfaceLanguage);
+        Assert.Equal("auto", fresh.DictationLanguage);
+        Assert.False(fresh.TranslateToEnglish);
         Assert.Equal("Ctrl+Alt+D", fresh.Shortcut);
         fresh.NeverUseClipboard = true;
         fresh.Mode = TriggerMode.Hold;
@@ -105,9 +107,29 @@ public class IntegrationTests
         using var t = new Transcriber();
         await t.LoadAsync(WhisperModel.BaseModel, new ModelStore(Path.Combine(Path.GetTempPath(), "wk-models")));
         var sw = System.Diagnostics.Stopwatch.StartNew();
-        var text = await t.TranscribeAsync(samples, "fr", CancellationToken.None);
+        var text = await t.TranscribeAsync(samples, "fr", false, CancellationToken.None);
         Console.WriteLine($"Transcription ({sw.Elapsed.TotalSeconds:F2} s) : {text}");
         Assert.Contains("budget", TextCleaner.Clean(text).ToLowerInvariant());
+    }
+
+    [Fact]
+    public async Task TranslatesFrenchSpeechToEnglish()
+    {
+        if (Environment.GetEnvironmentVariable("WK_INTEGRATION") != "1" || !OperatingSystem.IsMacOS()) return;
+        var wav = Path.Combine(Path.GetTempPath(), "wk-tr-" + Guid.NewGuid() + ".wav");
+        var say = System.Diagnostics.Process.Start("/usr/bin/say",
+            ["-v", "Thomas", "-o", wav, "--data-format=LEF32@16000", "Bonjour, je voudrais réserver une table pour ce soir."]);
+        await say!.WaitForExitAsync();
+        var data = await File.ReadAllBytesAsync(wav);
+        var start = IndexOf(data, "data"u8.ToArray()) + 8;
+        var samples = new float[(data.Length - start) / 4];
+        Buffer.BlockCopy(data, start, samples, 0, samples.Length * 4);
+
+        using var t = new Transcriber();
+        await t.LoadAsync(WhisperModel.BaseModel, new ModelStore(Path.Combine(Path.GetTempPath(), "wk-models")));
+        var text = await t.TranscribeAsync(samples, "fr", true, CancellationToken.None);
+        Console.WriteLine($"Traduction : {text}");
+        Assert.Contains("table", text.ToLowerInvariant());
     }
 
     private static int IndexOf(byte[] haystack, byte[] needle)

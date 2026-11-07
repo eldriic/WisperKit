@@ -9,7 +9,9 @@ public enum TriggerMode { Toggle, Hold }
 public sealed class AppSettings
 {
     public string ModelId { get; set; } = WhisperModel.Default.Id;
-    public string DictationLanguage { get; set; } = "en";
+    /// <summary>"auto" par défaut : le texte sort dans la langue parlée.</summary>
+    public string DictationLanguage { get; set; } = "auto";
+    public bool TranslateToEnglish { get; set; }
     public string InterfaceLanguage { get; set; } = "en";
     public bool AutoInsert { get; set; } = true;
     public bool NeverUseClipboard { get; set; }

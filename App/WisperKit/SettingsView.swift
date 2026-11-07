@@ -121,8 +121,12 @@ struct GeneralPage: View {
                             BlueSwitch(isOn: $app.restoreClipboard)
                         }
                     }
-                    SettingsRow(title: L("Dictation language"), description: L("Forcing the language avoids detection mistakes.")) {
+                    SettingsRow(title: L("Dictation language"), description: L("Auto-detect works for most people; forcing a language avoids detection mistakes.")) {
                         PillMenu(selection: $app.language, options: AppModel.languages.map { ($0.id, L($0.label)) })
+                    }
+                    SettingsRow(title: L("Translate to English"),
+                                description: L("Speak any language, get English text. Works best with large-v3.")) {
+                        BlueSwitch(isOn: $app.translateToEnglish)
                     }
                     SettingsRow(title: L("Sounds"), description: L("A chime when listening starts and ends.")) {
                         BlueSwitch(isOn: $app.sounds)

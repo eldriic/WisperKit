@@ -31,14 +31,16 @@ public sealed class Transcriber : ITranscriber, IDisposable
         }
     }
 
-    public async Task<string> TranscribeAsync(float[] samples, string language, CancellationToken cancellationToken)
+    public async Task<string> TranscribeAsync(float[] samples, string language, bool translate, CancellationToken cancellationToken)
     {
         await _gate.WaitAsync(cancellationToken);
         try
         {
             var factory = _factory ?? throw new InvalidOperationException("The model is not loaded yet.");
+            var plan = DecodingPlan.Make(language, translate, LoadedModel?.Id.Contains("turbo") ?? false);
             var builder = factory.CreateBuilder();
-            builder = language == "auto" ? builder.WithLanguageDetection() : builder.WithLanguage(language);
+            builder = plan.Language is null ? builder.WithLanguageDetection() : builder.WithLanguage(plan.Language);
+            if (plan.TranslateTask) builder = builder.WithTranslate();
             await using var processor = builder.Build();
             var parts = new List<string>();
             await foreach (var segment in processor.ProcessAsync(samples, cancellationToken))

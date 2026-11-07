@@ -60,6 +60,8 @@ enum Snapshots {
             let target = args.firstIndex(of: "--paste").flatMap { $0 + 1 < args.count ? args[$0 + 1] : nil }
             app.dictation.autoPaste = false
             app.dictation.insertionMethod = args.contains("--type") ? .type : .paste
+            app.dictation.translateToEnglish = args.contains("--translate")
+            if args.contains("--translate") { app.dictation.language = "fr" }
             print("SELFTEST écoute \(seconds) s"); fflush(stdout)
             app.dictation.start()
             try? await Task.sleep(for: .seconds(seconds))

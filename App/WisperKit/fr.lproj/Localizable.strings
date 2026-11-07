@@ -89,3 +89,6 @@
 "WisperKit starts with your macOS session." = "WisperKit se lance avec ta session macOS.";
 "Works from any app." = "Fonctionne depuis n'importe quelle app.";
 "Writes the text into the frontmost app as soon as it is transcribed." = "Écrit le texte dans l'app au premier plan dès la fin de la transcription.";
+"Auto-detect works for most people; forcing a language avoids detection mistakes." = "La détection auto convient à la plupart des gens ; forcer une langue évite les erreurs de détection.";
+"Speak any language, get English text. Works best with large-v3." = "Parle dans n'importe quelle langue, obtiens du texte en anglais. Fonctionne mieux avec large-v3.";
+"Translate to English" = "Traduire en anglais";

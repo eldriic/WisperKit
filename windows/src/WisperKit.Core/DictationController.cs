@@ -33,7 +33,9 @@ public sealed class DictationController
     public string? LastText { get; private set; }
 
     // Réglages appliqués à chaque dictée.
-    public string Language { get; set; } = "en";
+    public string Language { get; set; } = "auto";
+    /// <summary>Produit du texte anglais quelle que soit la langue parlée.</summary>
+    public bool TranslateToEnglish { get; set; }
     public bool AutoInsert { get; set; } = true;
     public InsertionMethod InsertionMethod { get; set; } = InsertionMethod.Paste;
     public bool RestoreClipboard { get; set; } = true;
@@ -84,16 +86,16 @@ public sealed class DictationController
         }
         SetState(DictationState.Transcribing);
         _cts = new CancellationTokenSource();
-        _task = RunAsync(samples, Language, _cts.Token);
+        _task = RunAsync(samples, Language, TranslateToEnglish, _cts.Token);
     }
 
-    private async Task RunAsync(float[] samples, string language, CancellationToken token)
+    private async Task RunAsync(float[] samples, string language, bool translate, CancellationToken token)
     {
         // Toujours asynchrone : Stop() rend la main en état « transcription » (comme la version macOS).
         await Task.Yield();
         try
         {
-            var raw = await _transcriber.TranscribeAsync(samples, language, token);
+            var raw = await _transcriber.TranscribeAsync(samples, language, translate, token);
             if (token.IsCancellationRequested) return;
             Finish(raw);
         }

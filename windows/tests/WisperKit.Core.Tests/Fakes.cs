@@ -17,8 +17,10 @@ sealed class FakeTranscriber : ITranscriber
     public string Text = " Bonjour le monde. ";
     public Exception? Error;
     public TimeSpan Delay = TimeSpan.Zero;
-    public async Task<string> TranscribeAsync(float[] samples, string language, CancellationToken ct)
+    public bool? LastTranslate;
+    public async Task<string> TranscribeAsync(float[] samples, string language, bool translate, CancellationToken ct)
     {
+        LastTranslate = translate;
         await Task.Delay(Delay, ct);
         if (Error is not null) throw Error;
         return Text;

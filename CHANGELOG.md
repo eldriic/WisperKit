@@ -7,6 +7,10 @@ All notable changes to WisperKit are documented here. The format follows [Keep a
 ### Added
 - **Windows version** (Windows 10/11, x64 and ARM64): notification-area app in C# / WPF with the same features as macOS — global shortcut (Ctrl+Alt+D, toggle or hold, Esc to cancel), whisper.cpp transcription on CPU or GPU (Vulkan), auto-insert by paste or clipboard-free typing (kept out of the Win+V history), wave indicator, English/French settings and first-launch guide.
 - Per-user installer (no admin rights) and winget manifests.
+- **Translate to English** (macOS and Windows): speak any language and get English text, using Whisper's translation task, or forced English output with `large-v3-turbo`.
+
+### Changed
+- The dictation language now defaults to **auto-detect** on both platforms, so the text comes out in the language you speak.
 
 ## [0.1.0] - 2026-11-06
 
