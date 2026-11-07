@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Docs: WisperKit</title>
+  <meta name="description" content="Install, set up and use WisperKit, private on-device dictation for macOS and Windows.">
+  <meta name="theme-color" content="#08090a">
+  <link rel="icon" type="image/png" href="assets/icon-256.png">
+  <link rel="preload" href="assets/fonts/inter-500.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css">
+  <script>document.documentElement.classList.add('js')</script>
+</head>
+<body class="page-docs">
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="backdrop backdrop--short" aria-hidden="true"><div class="backdrop__ocean"></div><div class="backdrop__rays"></div><canvas class="backdrop__motes"></canvas></div>
+
+  <header class="nav">
+    <div class="container nav__inner">
+      <a class="wordmark" href="index.html" aria-label="WisperKit home">
+        <img src="assets/icon-256.png" width="24" height="24" alt="">
+        <span>WisperKit</span>
+      </a>
+      <nav class="nav__links" aria-label="Site">
+        <a href="index.html#features">Features</a>
+        <a href="docs.html" aria-current="page">Docs</a>
+        <a href="changelog.html">Changelog</a>
+      </nav>
+      <div class="nav__end">
+        <a class="nav__gh" href="https://github.com/eldriic/WisperKit"><svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>GitHub</span></a>
+        <a class="btn btn--primary btn--small" href="https://github.com/eldriic/WisperKit/releases/latest"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M8 2v8m0 0L4.5 6.5M8 10l3.5-3.5M2.5 13.5h11"/></svg>Download</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="container docs">
+    <aside class="docs-side" aria-label="Documentation">
+      <label class="docs-search">
+        <span class="visually-hidden">Search the docs</span>
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M7 12.5a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11Zm7 2-3.1-3.1"/></svg>
+        <input type="search" placeholder="Search docs" autocomplete="off">
+      </label>
+      <nav class="docs-nav">
+        <p class="docs-nav__group">Start here</p>
+        <ul>
+          <li><a href="#overview">What is WisperKit?</a></li>
+          <li><a href="#install-mac">Install on macOS</a></li>
+          <li><a href="#first-launch">First launch</a></li>
+          <li><a href="#install-windows">Install on Windows</a></li>
+        </ul>
+        <p class="docs-nav__group">Using WisperKit</p>
+        <ul>
+          <li><a href="#shortcuts">Shortcut and modes</a></li>
+          <li><a href="#settings">Settings</a></li>
+          <li><a href="#models">Models</a></li>
+          <li><a href="#translate">Translate to English</a></li>
+        </ul>
+        <p class="docs-nav__group">Help</p>
+        <ul>
+          <li><a href="#privacy">Privacy</a></li>
+          <li><a href="#troubleshooting">Troubleshooting</a></li>
+          <li><a href="#build">Build from source</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <main id="main" class="docs-main">
+      <article class="prose">
+        <section id="overview">
+          <h1>What is WisperKit?</h1>
+          <p class="lead">A menu bar app that turns your voice into text, typed wherever your cursor is.</p>
+          <p>Press <kbd>⌃</kbd> <kbd>⌥</kbd> <kbd>D</kbd>, talk, press it again. <a href="https://github.com/openai/whisper">OpenAI Whisper</a> transcribes your voice locally (on the Neural Engine through <a href="https://github.com/argmaxinc/WhisperKit">WhisperKit by Argmax</a> on a Mac, through <a href="https://github.com/ggerganov/whisper.cpp">whisper.cpp</a> on Windows) and the text lands in the app you were using: a chat, an email, your editor, a terminal.</p>
+          <p>No account, no subscription, and no audio ever leaves your computer.</p>
+          <figure>
+            <img class="shot" src="assets/hud-voix.png" width="640" height="280" alt="The WisperKit recording indicator: a pill with colored waves and a 0:04 timer" loading="lazy">
+            <figcaption>The indicator while listening: the waves follow your voice.</figcaption>
+          </figure>
+        </section>
+
+        <section id="install-mac">
+          <h2>Install on macOS</h2>
+          <p>Requires macOS 15 Sequoia or later on Apple Silicon (M1 or newer), and about 2 GB of free disk space for the default model.</p>
+          <h3>Homebrew</h3>
+          <div class="cmd"><pre><code>brew tap eldriic/tap
+brew trust eldriic/tap
+brew install --cask wisperkit</code></pre><button class="copy" type="button" data-copy="brew tap eldriic/tap && brew trust eldriic/tap && brew install --cask wisperkit">Copy</button></div>
+          <p>Homebrew asks you to trust a third-party tap once. Update later with <code>brew upgrade --cask wisperkit</code>.</p>
+          <h3>Manual download</h3>
+          <ol>
+            <li>Download <code>WisperKit-x.y.z.dmg</code> from the <a href="https://github.com/eldriic/WisperKit/releases/latest">latest release</a>.</li>
+            <li>Open it and drag WisperKit into Applications.</li>
+            <li>The app is not notarized, so macOS blocks the first launch: open System Settings, Privacy and Security, and click Open Anyway next to WisperKit.</li>
+          </ol>
+          <p>Or remove the quarantine flag from a terminal:</p>
+          <div class="cmd"><pre><code>xattr -dr com.apple.quarantine /Applications/WisperKit.app</code></pre><button class="copy" type="button" data-copy="xattr -dr com.apple.quarantine /Applications/WisperKit.app">Copy</button></div>
+        </section>
+
+        <section id="first-launch">
+          <h2>First launch</h2>
+          <p>A welcome window walks you through setup:</p>
+          <ol>
+            <li><strong>Microphone:</strong> allow it when macOS asks.</li>
+            <li><strong>Accessibility:</strong> needed to type into other apps. Without it, WisperKit still works but only copies the text to your clipboard.</li>
+            <li><strong>Model:</strong> <code>large-v3-turbo</code> (about 1.6 GB) downloads once from Hugging Face; progress shows in the menu.</li>
+            <li>Put your cursor anywhere, press <kbd>⌃</kbd> <kbd>⌥</kbd> <kbd>D</kbd>, speak, press it again.</li>
+          </ol>
+          <figure><img class="shot" src="assets/settings-permissions.png" width="1520" height="1080" alt="WisperKit welcome guide with microphone and accessibility both allowed" loading="lazy"></figure>
+        </section>
+
+        <section id="install-windows">
+          <h2>Install on Windows</h2>
+          <p>Requires Windows 10 (1809) or 11, x64 or ARM64, and about 1 GB of free disk space.</p>
+          <ol>
+            <li>Download <code>WisperKit-Setup-x.y.z-x64.exe</code> (or <code>-arm64.exe</code>) from the <a href="https://github.com/eldriic/WisperKit/releases/latest">latest release</a> and run it. No administrator rights needed.</li>
+            <li>The installer isn’t signed yet, so SmartScreen may warn you once: click More info, then Run anyway.</li>
+            <li>The welcome window downloads <code>large-v3-turbo</code> (about 550 MB), then press <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>D</kbd> anywhere.</li>
+          </ol>
+          <p>WisperKit lives in the notification area. No Accessibility permission is needed on Windows, but text can’t be inserted into apps running as administrator. Diagnostic log: <code>%LOCALAPPDATA%\WisperKit\Logs\wisperkit.log</code>.</p>
+        </section>
+
+        <section id="shortcuts">
+          <h2>Shortcut and modes</h2>
+          <table>
+            <thead><tr><th scope="col">Action</th><th scope="col">Default</th></tr></thead>
+            <tbody>
+              <tr><td>Start or stop dictation</td><td><kbd>⌃</kbd> <kbd>⌥</kbd> <kbd>D</kbd> on Mac, <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>D</kbd> on Windows</td></tr>
+              <tr><td>Cancel while listening</td><td><kbd>Esc</kbd></td></tr>
+              <tr><td>Push-to-talk</td><td>Settings, Keyboard, Mode: Hold</td></tr>
+              <tr><td>Copy the last dictation</td><td>Menu bar, Last dictation</td></tr>
+            </tbody>
+          </table>
+          <p>In Toggle mode you press once to start and once to stop. In Hold mode you speak while the shortcut is held down. Change the shortcut itself in Settings, Keyboard.</p>
+        </section>
+
+        <section id="settings">
+          <h2>Settings</h2>
+          <p>Interface language (English or French), auto-insert, clipboard-free typing, clipboard restore, dictation language (auto-detect by default, or forced English or French), translation to English, sounds, the on-screen indicator and launch at login.</p>
+          <p><strong>Never use the clipboard</strong> types the text key by key instead of pasting it. It is a bit slower, and your clipboard is never touched. Pasted text is flagged so clipboard managers skip it.</p>
+          <figure><img class="shot" src="assets/settings-general.png" width="1520" height="1080" alt="WisperKit general settings" loading="lazy"></figure>
+        </section>
+
+        <section id="models">
+          <h2>Models</h2>
+          <table>
+            <thead><tr><th scope="col">Model</th><th scope="col">Size</th><th scope="col">Best for</th></tr></thead>
+            <tbody>
+              <tr><td><code>large-v3-turbo</code> (default)</td><td class="num">1.6 GB</td><td>Best accuracy and speed trade-off</td></tr>
+              <tr><td><code>large-v3</code></td><td class="num">3 GB</td><td>Maximum accuracy, slower</td></tr>
+              <tr><td><code>small</code></td><td class="num">480 MB</td><td>Older or low-memory Macs</td></tr>
+              <tr><td><code>base</code></td><td class="num">140 MB</td><td>Quick tests</td></tr>
+            </tbody>
+          </table>
+          <p>Sizes are for macOS. Models are stored in <code>~/Library/Application Support/WisperKit/Models</code>. On Windows they run on the CPU or on the GPU through Vulkan (NVIDIA, AMD, Intel).</p>
+        </section>
+
+        <section id="translate">
+          <h2>Translate to English</h2>
+          <p>Turn on <strong>Translate to English</strong> and WisperKit writes your words in English, whatever language you speak. Leave it off and the text stays in the language you spoke, detected automatically.</p>
+          <p><code>large-v3</code> gives the best translations. The default <code>large-v3-turbo</code> wasn’t trained on Whisper’s translation task, so WisperKit makes it write directly in English instead: it works well for everyday sentences but can be less faithful on long or technical dictations.</p>
+        </section>
+
+        <section id="privacy">
+          <h2>Privacy</h2>
+          <ul>
+            <li>Audio is recorded in memory, transcribed on your computer and discarded. Nothing is uploaded, logged or kept.</li>
+            <li>The only network access is the one-time model download from <a href="https://huggingface.co/argmaxinc/whisperkit-coreml">Hugging Face</a>.</li>
+            <li>No analytics, no telemetry, no account.</li>
+          </ul>
+        </section>
+
+        <section id="troubleshooting">
+          <h2>Troubleshooting</h2>
+          <details>
+            <summary>The text is copied but not pasted into the app</summary>
+            <p>WisperKit needs the Accessibility permission to type into other apps, and macOS sometimes keeps a stale entry after an update. Reset it, relaunch WisperKit and enable it again from Settings, Permissions:</p>
+            <div class="cmd"><pre><code>tccutil reset Accessibility com.eldriic.wisperkit
+tccutil reset PostEvent com.eldriic.wisperkit</code></pre><button class="copy" type="button" data-copy="tccutil reset Accessibility com.eldriic.wisperkit && tccutil reset PostEvent com.eldriic.wisperkit">Copy</button></div>
+            <p>A diagnostic log is written to <code>~/Library/Logs/WisperKit/wisperkit.log</code>.</p>
+          </details>
+          <details>
+            <summary>Nothing happens when I press the shortcut</summary>
+            <p>Check the menu bar icon: the model may still be downloading or loading. Another app may also use the same shortcut; pick another one in Settings, Keyboard.</p>
+          </details>
+          <details>
+            <summary>Some words are wrong</summary>
+            <p>Force the language in Settings, General, Dictation language instead of auto-detect, and prefer <code>large-v3-turbo</code> or <code>large-v3</code>. A good microphone close to your mouth helps a lot.</p>
+          </details>
+          <details>
+            <summary>Why is the app not notarized?</summary>
+            <p>Notarization requires a paid Apple Developer account. Releases are signed with a stable self-signed certificate instead: Gatekeeper asks for confirmation once, and macOS keeps your permissions across updates. The Homebrew cask removes the quarantine flag for you.</p>
+          </details>
+        </section>
+
+        <section id="build">
+          <h2>Build from source</h2>
+          <p><strong>macOS</strong> requires Xcode 16 or later and <a href="https://github.com/yonaskolb/XcodeGen">XcodeGen</a>.</p>
+          <div class="cmd"><pre><code>git clone https://github.com/eldriic/WisperKit.git && cd WisperKit
+swift test
+./Scripts/build.sh --install</code></pre><button class="copy" type="button" data-copy="git clone https://github.com/eldriic/WisperKit.git && cd WisperKit && swift test && ./Scripts/build.sh --install">Copy</button></div>
+          <p><strong>Windows</strong> requires the <a href="https://dotnet.microsoft.com/download">.NET 10 SDK</a>.</p>
+          <div class="cmd"><pre><code>cd windows
+dotnet test tests/WisperKit.Core.Tests
+dotnet publish src/WisperKit.App -c Release -r win-x64 --self-contained -o publish/x64</code></pre><button class="copy" type="button" data-copy="cd windows && dotnet test tests/WisperKit.Core.Tests && dotnet publish src/WisperKit.App -c Release -r win-x64 --self-contained -o publish/x64">Copy</button></div>
+          <p>Issues and pull requests are welcome on <a href="https://github.com/eldriic/WisperKit">GitHub</a>.</p>
+        </section>
+      </article>
+    </main>
+  </div>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="footer__brand">
+        <a class="wordmark" href="index.html"><img src="assets/icon-256.png" width="24" height="24" alt=""><span>WisperKit</span></a>
+        <p>Built on <a href="https://github.com/openai/whisper">Whisper</a> by OpenAI, <a href="https://github.com/argmaxinc/WhisperKit">WhisperKit</a> by Argmax and <a href="https://github.com/ggerganov/whisper.cpp">whisper.cpp</a>. Vibe-coded with an AI assistant, reviewed and tested.</p>
+      </div>
+      <nav class="footer__links" aria-label="Project">
+        <a href="docs.html">Docs</a>
+        <a href="changelog.html">Changelog</a>
+        <a href="https://github.com/eldriic/WisperKit">GitHub</a>
+        <a href="https://github.com/eldriic/WisperKit/releases">Releases</a>
+        <a href="https://github.com/eldriic/WisperKit/issues">Report an issue</a>
+        <a href="https://github.com/eldriic/WisperKit/blob/main/LICENSE">MIT license</a>
+      </nav>
+    </div>
+  </footer>
+
+  <script src="main.js" defer></script>
+</body>
+</html>

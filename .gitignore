@@ -22,3 +22,6 @@ build/
 build.noindex/
 dist/
 .claude/settings.local.json
+
+# Python
+__pycache__/
