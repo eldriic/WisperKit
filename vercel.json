@@ -4,6 +4,6 @@
   "installCommand": "",
   "buildCommand": "python3 site/build.py",
   "outputDirectory": "site",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- site CHANGELOG.md vercel.json",
+  "ignoreCommand": "git rev-parse -q --verify HEAD^ >/dev/null 2>&1 && git diff --quiet HEAD^ HEAD -- site CHANGELOG.md vercel.json",
   "cleanUrls": true
 }
