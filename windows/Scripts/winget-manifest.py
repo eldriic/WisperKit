@@ -24,7 +24,7 @@ ManifestVersion: 1.28.0
 
 installers = [("x64", sha_x64)] + ([("arm64", sha_arm)] if sha_arm else [])
 lines = "".join(f"""- Architecture: {arch}
-  InstallerUrl: {base}/WisperKit-Setup-{version}-{arch}.exe
+  InstallerUrl: {base}/WisperKit-Setup-{arch}.exe
   InstallerSha256: {sha.upper()}
 """ for arch, sha in installers)
 (out / f"{pkg}.installer.yaml").write_text(header.format(kind="installer") + f"""PackageIdentifier: {pkg}

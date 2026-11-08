@@ -1,4 +1,4 @@
-// WisperKit site: feature tabs, copy buttons and the recording pill demo.
+// WisperKit site: wave backdrop, feature tabs, copy buttons and the recording pill demo.
 (() => {
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -10,44 +10,77 @@
     window.addEventListener('scroll', onScroll, { passive: true });
   }
 
-  /* ---------- Backdrop motes ---------- */
-  const motes = document.querySelector('.backdrop__motes');
-  if (motes && motes.getContext) {
-    const mctx = motes.getContext('2d');
-    const moteColor = getComputedStyle(document.documentElement).getPropertyValue('--color-mote').trim();
-    let mw = 0, mh = 0, dots = [];
-    const seed = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const r = motes.getBoundingClientRect();
-      mw = r.width; mh = r.height;
-      motes.width = Math.round(mw * dpr); motes.height = Math.round(mh * dpr);
-      mctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const n = Math.round((mw * mh) / 16000);
-      dots = Array.from({ length: n }, () => ({
-        x: Math.random() * mw, y: Math.random() * mh,
-        r: Math.random() * 1.1 + 0.3, a: Math.random() * 0.5 + 0.15,
-        vy: -(Math.random() * 0.12 + 0.03), vx: (Math.random() - 0.5) * 0.05, tw: Math.random() * Math.PI * 2,
-      }));
-    };
-    const paint = (t) => {
-      mctx.clearRect(0, 0, mw, mh);
-      mctx.fillStyle = moteColor;
-      for (const d of dots) {
-        mctx.globalAlpha = d.a * (0.65 + 0.35 * Math.sin(t / 1400 + d.tw));
-        mctx.beginPath(); mctx.arc(d.x, d.y, d.r, 0, Math.PI * 2); mctx.fill();
+  /* ---------- Waves (port of WaveRenderer in RecordingHUD.swift) ---------- */
+  const css = getComputedStyle(document.documentElement);
+  const palette = ['--wave-1', '--wave-2', '--wave-3', '--wave-4'].map((n) => css.getPropertyValue(n).trim());
+  const col = (ch, a) => `oklch(${ch} / ${a})`;
+  // Superposed waves, faded at both ends, additive blend.
+  const drawWaves = (ctx, left, right, midY, amplitude, t, speed, peak = 0.62) => {
+    ctx.globalCompositeOperation = 'lighter';
+    palette.forEach((ch, i) => {
+      const a = amplitude * (1 - i * 0.12);
+      const freq = 1.1 + i * 0.35;
+      const phase = t * (1.3 + i * 0.4) * speed + i * 2;
+      const steps = 90;
+      ctx.beginPath();
+      for (let k = 0; k <= steps; k++) {
+        const u = k / steps;
+        const y = midY + Math.sin(u * Math.PI * 2 * freq + phase) * a * Math.pow(Math.sin(Math.PI * u), 1.4);
+        const x = left + u * (right - left);
+        k === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
       }
-      mctx.globalAlpha = 1;
+      for (let k = steps; k >= 0; k--) {
+        const u = k / steps;
+        const y = midY - Math.sin(u * Math.PI * 2 * freq + phase + 1) * a * Math.pow(Math.sin(Math.PI * u), 1.4) * 0.7;
+        ctx.lineTo(left + u * (right - left), y);
+      }
+      ctx.closePath();
+      const lg = ctx.createLinearGradient(left, midY, right, midY);
+      lg.addColorStop(0, col(ch, 0));
+      lg.addColorStop(0.5, col(ch, peak));
+      lg.addColorStop(1, col(ch, 0));
+      ctx.fillStyle = lg;
+      ctx.fill();
+    });
+    ctx.globalCompositeOperation = 'source-over';
+  };
+  const fitCanvas = (canvas, ctx, scale = 1) => {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2) * scale;
+    // Layout size, not getBoundingClientRect(): the backdrop canvas is scaled by a CSS transform.
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { w, h };
+  };
+
+  /* ---------- Backdrop: the waves at page scale, standing upright, breathing like a slow voice ---------- */
+  const bg = document.querySelector('.backdrop__waves');
+  if (bg && bg.getContext) {
+    const bctx = bg.getContext('2d');
+    const short = bg.closest('.backdrop--short');
+    let size = { w: 0, h: 0 };
+    // The canvas is blurred afterwards: half resolution is plenty and much cheaper.
+    const fit = () => { size = fitCanvas(bg, bctx, 0.5); };
+    const paint = (t) => {
+      const { w, h } = size;
+      bctx.clearRect(0, 0, w, h);
+      const level = 0.62 + 0.22 * Math.sin(t * 0.55) + 0.12 * Math.sin(t * 1.7 + 1);
+      // Turned a quarter: the wave runs from the top down, centred, its widest part behind the hero.
+      bctx.save();
+      bctx.translate(w / 2, 0);
+      bctx.rotate(Math.PI / 2);
+      const top = short ? -h * 0.45 : -h * 0.3;
+      drawWaves(bctx, top, h * 0.95, 0, Math.min(w * 0.2, 260) * level, t, 0.35, 0.55);
+      bctx.restore();
     };
-    seed();
-    window.addEventListener('resize', seed);
-    if (reduce) paint(0);
+    fit();
+    window.addEventListener('resize', () => { fit(); if (reduce) paint(1.7); });
+    if (reduce) paint(1.7);
     else {
-      const loop = (t) => {
-        for (const d of dots) {
-          d.y += d.vy; d.x += d.vx;
-          if (d.y < -4) { d.y = mh + 4; d.x = Math.random() * mw; }
-        }
-        if (window.scrollY < mh) paint(t);
+      let visible = true;
+      new IntersectionObserver(([e]) => { visible = e.isIntersecting; }).observe(bg.parentElement);
+      const loop = (now) => {
+        if (visible && !document.hidden) paint(now / 1000);
         requestAnimationFrame(loop);
       };
       requestAnimationFrame(loop);
@@ -102,6 +135,45 @@
   });
   if (tabs.length) select(tabs[0]);
 
+  /* ---------- Download: the right file for this OS and, on Windows, this CPU ---------- */
+  const DL = 'https://github.com/eldriic/WisperKit/releases/latest/download/';
+  const uaData = navigator.userAgentData;
+  const ua = navigator.userAgent;
+  const isWindows = uaData ? uaData.platform === 'Windows' : /Windows NT/.test(ua);
+  const isMac = uaData ? uaData.platform === 'macOS' : /Macintosh/.test(ua) && !('ontouchend' in document);
+  const navBtn = document.querySelector('[data-download="nav"]');
+  if (isMac && navBtn) navBtn.href = DL + 'WisperKit.dmg';
+  if (isWindows) {
+    // Chromium (Edge, Chrome) gives the real CPU; Firefox always says x64, so x64 stays the default.
+    const detect = async () => {
+      try {
+        const { architecture } = await uaData.getHighEntropyValues(['architecture']);
+        if (architecture === 'arm') return 'arm64';
+        if (architecture === 'x86') return 'x64';
+      } catch { /* no Client Hints */ }
+      return /ARM64|aarch64/i.test(ua) ? 'arm64' : null;
+    };
+    const apply = (arch) => {
+      const file = DL + `WisperKit-Setup-${arch || 'x64'}.exe`;
+      const hero = document.querySelector('[data-download="hero"]');
+      if (hero) {
+        hero.href = file;
+        hero.querySelector('[data-download-label]').textContent = 'Download for Windows';
+        document.querySelector('[data-also="mac"]').hidden = true;
+        const also = document.querySelector('[data-also="win"]');
+        also.hidden = false;
+        also.querySelector('[data-arch-note]').textContent =
+          arch === 'arm64' ? 'ARM64 version, detected for this PC.' : arch === 'x64' ? 'x64 version, detected for this PC.' : 'x64 version, for most PCs.';
+      }
+      if (navBtn) navBtn.href = file;
+      document.querySelectorAll('[data-arch]').forEach((a) => {
+        if (a.dataset.arch === (arch || 'x64')) a.dataset.detected = ''; else delete a.dataset.detected;
+      });
+    };
+    apply(null);
+    detect().then(apply);
+  }
+
   /* ---------- Copy ---------- */
   document.querySelectorAll('[data-copy]').forEach((btn) => {
     btn.addEventListener('click', async () => {
@@ -124,53 +196,14 @@
   const timeEl = pill.querySelector('.pill__time');
   const textEl = document.querySelector('.demo__text');
 
-  const css = getComputedStyle(document.documentElement);
-  const channels = (name) => css.getPropertyValue(name).trim();
-  const palette = ['--wave-1', '--wave-2', '--wave-3', '--wave-4'].map(channels);
-  const col = (ch, a) => `oklch(${ch} / ${a})`;
-
   let w = 0, h = 0;
-  const resize = () => {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const r = canvas.getBoundingClientRect();
-    w = r.width; h = r.height;
-    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  };
+  const resize = () => { ({ w, h } = fitCanvas(canvas, ctx)); };
   resize();
   window.addEventListener('resize', resize);
 
   const draw = (t, level, speed) => {
     ctx.clearRect(0, 0, w, h);
-    const left = 4, right = w - 4, midY = h / 2;
-    const amplitude = (h / 2 - 3) * Math.min(level, 1);
-    ctx.globalCompositeOperation = 'lighter';
-    palette.forEach((ch, i) => {
-      const a = amplitude * (1 - i * 0.12);
-      const freq = 1.1 + i * 0.35;
-      const phase = t * (1.3 + i * 0.4) * speed + i * 2;
-      const steps = 70;
-      ctx.beginPath();
-      for (let k = 0; k <= steps; k++) {
-        const u = k / steps;
-        const y = midY + Math.sin(u * Math.PI * 2 * freq + phase) * a * Math.pow(Math.sin(Math.PI * u), 1.4);
-        const x = left + u * (right - left);
-        k === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-      }
-      for (let k = steps; k >= 0; k--) {
-        const u = k / steps;
-        const y = midY - Math.sin(u * Math.PI * 2 * freq + phase + 1) * a * Math.pow(Math.sin(Math.PI * u), 1.4) * 0.7;
-        ctx.lineTo(left + u * (right - left), y);
-      }
-      ctx.closePath();
-      const lg = ctx.createLinearGradient(left, midY, right, midY);
-      lg.addColorStop(0, col(ch, 0));
-      lg.addColorStop(0.5, col(ch, 0.62));
-      lg.addColorStop(1, col(ch, 0));
-      ctx.fillStyle = lg;
-      ctx.fill();
-    });
-    ctx.globalCompositeOperation = 'source-over';
+    drawWaves(ctx, 4, w - 4, h / 2, (h / 2 - 3) * Math.min(level, 1), t, speed);
   };
 
   if (reduce) { draw(1.7, 0.55, 1); return; }

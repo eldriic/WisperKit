@@ -15,8 +15,7 @@
   --color-on-ink: oklch(13% 0.004 250); --color-ink-hover: oklch(88% 0.004 250);
   --color-halo: oklch(55% 0.2 285 / 0.22); --color-glass: oklch(24% 0.012 280 / 0.72);
   --wave-1: 62% 0.2 260; --wave-2: 56% 0.25 285; --wave-3: 66% 0.26 340; --wave-4: 79% 0.13 225;
-  --color-ocean-1: oklch(34% 0.045 205); --color-ocean-2: oklch(23% 0.035 222); --color-ocean-3: oklch(23% 0.03 200);
-  --ray: 84% 0.08 190; --color-mote: oklch(90% 0.05 190); --color-ghost-hover: oklch(100% 0 0 / 0.05); --color-nav-scrolled: oklch(13% 0.004 250 / 0.72);
+  --wave-blur: 28px; --color-ghost-hover: oklch(100% 0 0 / 0.05); --color-nav-scrolled: oklch(13% 0.004 250 / 0.72);
   --color-rec: oklch(64% 0.22 27); --color-transcribing: oklch(73% 0.13 270);
   --font-display: "Inter", ui-sans-serif, system-ui, sans-serif; --font-body: "Inter", ui-sans-serif, system-ui, sans-serif; --font-outlier: var(--font-body);
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;

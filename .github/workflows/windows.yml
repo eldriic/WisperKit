@@ -68,8 +68,8 @@ jobs:
       - name: Winget manifests
         run: |
           $v = "${{ steps.version.outputs.value }}"
-          $x64 = (Get-FileHash "dist/WisperKit-Setup-$v-x64.exe").Hash
-          $arm = (Get-FileHash "dist/WisperKit-Setup-$v-arm64.exe").Hash
+          $x64 = (Get-FileHash "dist/WisperKit-Setup-x64.exe").Hash
+          $arm = (Get-FileHash "dist/WisperKit-Setup-arm64.exe").Hash
           python Scripts/winget-manifest.py $v $x64 $arm
 
       - uses: actions/upload-artifact@v4

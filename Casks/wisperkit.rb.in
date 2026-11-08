@@ -2,7 +2,7 @@ cask "wisperkit" do
   version "@VERSION@"
   sha256 "@SHA256@"
 
-  url "https://github.com/eldriic/WisperKit/releases/download/v#{version}/WisperKit-#{version}.dmg"
+  url "https://github.com/eldriic/WisperKit/releases/download/v#{version}/WisperKit.dmg"
   name "WisperKit"
   desc "Local Whisper dictation from the menu bar"
   homepage "https://github.com/eldriic/WisperKit"

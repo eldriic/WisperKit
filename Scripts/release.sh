@@ -11,7 +11,7 @@ cd "$(dirname "$0")/.."
 
 VERSION="${1:?usage: release.sh <version> [--publish]}"
 REPO="eldriic/WisperKit"
-DMG="dist/WisperKit-$VERSION.dmg"
+DMG="dist/WisperKit.dmg"
 
 security find-identity -p codesigning | grep -q '"WisperKit Dev"' \
   || { echo "Certificat « WisperKit Dev » absent du trousseau : release refusée." >&2; exit 1; }
