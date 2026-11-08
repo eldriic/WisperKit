@@ -135,6 +135,36 @@
   });
   if (tabs.length) select(tabs[0]);
 
+  /* ---------- « Also for » : menu des autres téléchargements ---------- */
+  const also = document.querySelector('[data-also]');
+  const alsoToggle = also && also.querySelector('.also__toggle');
+  const alsoMenu = also && also.querySelector('.also__menu');
+  // Masque l'entrée déjà proposée par le bouton principal et recalcule le libellé
+  const setAlso = (primary) => {
+    if (!also) return;
+    const shown = [];
+    also.querySelectorAll('[data-os]').forEach((item) => {
+      item.hidden = item.dataset.os === primary;
+      if (!item.hidden) shown.push(item.dataset.short);
+    });
+    // « Windows » couvre déjà ARM64 quand les deux sont proposés
+    const label = shown.includes('Windows') ? shown.filter((s) => s !== 'Windows ARM64') : shown;
+    also.querySelector('[data-also-label]').textContent = 'Also for ' + label.join(' · ');
+  };
+  if (also) {
+    const open = (state) => {
+      alsoToggle.setAttribute('aria-expanded', String(state));
+      alsoMenu.hidden = !state;
+    };
+    alsoToggle.addEventListener('click', () => open(alsoMenu.hidden));
+    alsoMenu.addEventListener('click', (e) => { if (e.target.closest('a')) open(false); });
+    document.addEventListener('click', (e) => { if (!also.contains(e.target)) open(false); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !alsoMenu.hidden) { open(false); alsoToggle.focus(); }
+    });
+    setAlso('mac');
+  }
+
   /* ---------- Download: the right file for this OS and, on Windows, this CPU ---------- */
   const DL = 'https://github.com/eldriic/WisperKit/releases/latest/download/';
   const uaData = navigator.userAgentData;
@@ -159,11 +189,7 @@
       if (hero) {
         hero.href = file;
         hero.querySelector('[data-download-label]').textContent = 'Download for Windows';
-        document.querySelector('[data-also="mac"]').hidden = true;
-        const also = document.querySelector('[data-also="win"]');
-        also.hidden = false;
-        also.querySelector('[data-arch-note]').textContent =
-          arch === 'arm64' ? 'ARM64 version, detected for this PC.' : arch === 'x64' ? 'x64 version, detected for this PC.' : 'x64 version, for most PCs.';
+        setAlso(`win-${arch || 'x64'}`);
       }
       if (navBtn) navBtn.href = file;
       document.querySelectorAll('[data-arch]').forEach((a) => {
