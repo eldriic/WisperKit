@@ -21,9 +21,12 @@ DerivedData/
 build/
 build.noindex/
 dist/
-.claude/settings.local.json
 
 # Python
 __pycache__/
 .vercel
 .env*
+
+# Outils locaux (Claude Code)
+CLAUDE.md
+.claude/

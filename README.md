@@ -15,6 +15,8 @@
 
 <img src="docs/images/hud-voix.png" width="420" alt="WisperKit recording indicator">
 
+**[wisperkit.eldriic.com](https://wisperkit.eldriic.com)**
+
 [Install](#install) · [Windows](#windows) · [Usage](#usage) · [Privacy](#privacy) · [Troubleshooting](#troubleshooting) · [Build from source](#build-from-source) · [En français](#en-français)
 
 </div>
@@ -230,6 +232,8 @@ WisperKit was **vibe-coded**: designed and built through conversation with an AI
 ## En français
 
 **WisperKit** est une app de dictée pour macOS et Windows, 100 % locale : un raccourci (<kbd>⌃</kbd> <kbd>⌥</kbd> <kbd>D</kbd>), tu parles, et le texte s'écrit tout seul là où se trouve ton curseur. La transcription utilise Whisper sur la puce de ton Mac : aucun son ne quitte l'ordinateur.
+
+Site : [wisperkit.eldriic.com](https://wisperkit.eldriic.com).
 
 **Installation** : `brew tap eldriic/tap && brew trust eldriic/tap && brew install --cask wisperkit`, ou télécharge le DMG de la [dernière version](https://github.com/eldriic/WisperKit/releases/latest), glisse l'app dans Applications, puis au premier lancement va dans **Réglages Système → Confidentialité et sécurité → Ouvrir quand même**. Une fenêtre d'accueil te guide ensuite : micro, Accessibilité (pour écrire au curseur), téléchargement du modèle (~1,6 Go, une seule fois). L'interface est en anglais par défaut : passe-la en français dans **Settings → General → Interface language**.
 
