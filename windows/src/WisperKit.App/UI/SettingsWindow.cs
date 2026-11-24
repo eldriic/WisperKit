@@ -51,7 +51,13 @@ internal sealed class SettingsWindow : Window
 
         app.Changed += Refresh;
         LanguageChanged += Refresh;
-        Closed += (_, _) => { app.Changed -= Refresh; LanguageChanged -= Refresh; };
+        Closed += (_, _) =>
+        {
+            app.Changed -= Refresh;
+            LanguageChanged -= Refresh;
+            // Fenêtre fermée pendant la capture : ne pas confisquer la prochaine combinaison tapée ailleurs.
+            if (_recording) app.CancelShortcutRecording();
+        };
         Rebuild();
     }
 
@@ -210,6 +216,15 @@ internal sealed class SettingsWindow : Window
         body.Children.Add(Theme.Card(WhisperModel.All.Select(m => (UIElement?)Theme.Row(m.Title, $"{L(m.Detail)} · {L(m.Size)}", ModelTrailing(m),
             m.Id == _app.Settings.ModelId ? L("active") : null)).ToArray()));
 
+        body.Children.Add(Theme.SectionTitle(L("Performance")));
+        var gpuDetail = _app.GpuCrashed && !_app.Settings.UseGpu
+            ? L("WisperKit crashed while using the graphics card: it now uses the processor.")
+            : L("Faster on most PCs. Turn it off if WisperKit crashes or transcribes nonsense.");
+        if (_app.GpuRestartPending) gpuDetail += " " + L("Restart WisperKit to apply.");
+        else if (_app.Runtime is { } runtime) gpuDetail += " " + L("In use: %@", runtime);
+        body.Children.Add(Theme.Card(Theme.Row(L("Use the graphics card (Vulkan)"), gpuDetail,
+            new Switch(_app.Settings.UseGpu, v => _app.Update(x => x.UseGpu = v)))));
+
         body.Children.Add(Theme.SectionTitle(L("Storage")));
         var usage = _app.Store.DiskUsage() / (1024.0 * 1024 * 1024);
         body.Children.Add(Theme.Card(Theme.Row(L("Models folder"), $"{_app.Store.Directory} · {L("%@ GB", usage.ToString("0.00", System.Globalization.CultureInfo.GetCultureInfo(Localizer.Language)))}",
@@ -265,11 +280,16 @@ internal sealed class SettingsWindow : Window
     {
         var s = _app.Settings;
         var shortcutButton = Theme.PillButton(_app.ShortcutLabel, () => { });
+        var hint = WithMargin(Theme.Label(L("Use Ctrl, Alt or Win with a key, or a function key. Esc cancels."), 11.5, Theme.Secondary),
+                              new Thickness(4, 0, 0, 14));
+        hint.Visibility = Visibility.Collapsed;
         shortcutButton.Click += (_, _) =>
         {
+            if (_recording) return;
             _recording = true;
             ((StackPanel)shortcutButton.Content).Children.Clear();
             ((StackPanel)shortcutButton.Content).Children.Add(Theme.Label(L("Press the new shortcut…"), 12, Theme.Blue));
+            hint.Visibility = Visibility.Visible;
             _app.RecordShortcut(_ => { _recording = false; Rebuild(); });
         };
         body.Children.Add(Theme.SectionTitle(L("Shortcut")));
@@ -281,6 +301,7 @@ internal sealed class SettingsWindow : Window
                     v => _app.Update(x => x.Mode = v))),
             Theme.Row(L("Cancel with Esc"), L("Pressing Esc while listening discards the recording."),
                 new Switch(s.EscapeCancels, v => _app.Update(x => x.EscapeCancels = v)))));
+        body.Children.Add(hint);
     }
 
     // ---- À propos ----

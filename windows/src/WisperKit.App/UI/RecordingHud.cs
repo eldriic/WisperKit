@@ -167,20 +167,33 @@ internal sealed class RecordingHud : Window
         Reveal();
     }
 
-    /// <summary>Court message (ex. texte seulement copié) puis masquage.</summary>
+    /// <summary>Court message (ex. texte seulement copié), puis retour à l'écoute en cours ou masquage.</summary>
     public async void Flash(string message)
     {
         _view.Message = message;
         Reveal();
+        var cts = NewTimer();
+        try { await Task.Delay(1600, cts.Token); } catch (TaskCanceledException) { return; }
+        _view.Message = null;
+        if (_dictation.State is DictationController.DictationState.Recording or DictationController.DictationState.Transcribing)
+            return; // le HUD reste pour l'écoute ou la transcription en cours
+        HideHud();
+    }
+
+    /// <summary>Un seul minuteur actif : tout nouvel affichage ou masquage annule le précédent
+    /// (sinon un ancien flash pouvait masquer le HUD d'une dictée lancée entre-temps).</summary>
+    private CancellationTokenSource NewTimer()
+    {
+        _hide?.Cancel();
         var cts = new CancellationTokenSource();
         _hide = cts;
-        try { await Task.Delay(1600, cts.Token); } catch (TaskCanceledException) { return; }
-        HideHud();
+        return cts;
     }
 
     private void Reveal()
     {
         _hide?.Cancel();
+        _hide = null;
         if (!IsVisible)
         {
             Show();
@@ -193,8 +206,7 @@ internal sealed class RecordingHud : Window
     public async void HideHud()
     {
         if (!IsVisible) return;
-        var cts = new CancellationTokenSource();
-        _hide = cts;
+        var cts = NewTimer();
         BeginAnimation(OpacityProperty, new System.Windows.Media.Animation.DoubleAnimation(0, TimeSpan.FromMilliseconds(200)));
         try { await Task.Delay(220, cts.Token); } catch (TaskCanceledException) { return; }
         System.Windows.Media.CompositionTarget.Rendering -= OnFrame;

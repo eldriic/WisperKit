@@ -23,6 +23,8 @@ public sealed class AppSettings
     /// <summary>Raccourci au format « Ctrl+Alt+D ».</summary>
     public string Shortcut { get; set; } = "Ctrl+Alt+D";
     public bool Onboarded { get; set; }
+    /// <summary>Carte graphique via Vulkan (Windows). Coupé automatiquement après un plantage du pilote.</summary>
+    public bool UseGpu { get; set; } = true;
 
     private static readonly JsonSerializerOptions Json = new()
     {

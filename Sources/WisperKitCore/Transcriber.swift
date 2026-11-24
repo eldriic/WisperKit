@@ -54,15 +54,20 @@ public actor Transcriber: Transcribing {
         loadedModel = model
     }
 
+    /// Un appel pendant un téléchargement du même modèle s'y joint (page Modèles + chargement du modèle actif)
+    /// au lieu d'écrire les mêmes fichiers en parallèle.
     public static func download(_ model: WhisperModel, base: URL = ModelStore.baseURL,
                                 progress: (@Sendable (Double) -> Void)? = nil) async throws -> URL {
         if ModelStore.isInstalled(model, base: base) { return ModelStore.folder(for: model, base: base) }
-        try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
-        let folder = try await WhisperKit.download(variant: model.id, downloadBase: base) { p in
-            progress?(p.fractionCompleted)
+        return try await DownloadRegistry.shared.run(key: base.appendingPathComponent(model.id).path,
+                                                     progress: progress) { report in
+            try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
+            let folder = try await WhisperKit.download(variant: model.id, downloadBase: base) { p in
+                report(p.fractionCompleted)
+            }
+            ModelStore.markInstalled(model, base: base)
+            return folder
         }
-        ModelStore.markInstalled(model, base: base)
-        return folder
     }
 
     public func unload() {
@@ -80,5 +85,31 @@ public actor Transcriber: Transcribing {
                                       skipSpecialTokens: true, withoutTimestamps: true)
         let results = try await pipe.transcribe(audioArray: samples, decodeOptions: options)
         return results.map(\.text).joined(separator: " ")
+    }
+}
+
+/// Téléchargements en cours, partagés par clé : un second appelant attend le même travail
+/// et reçoit la progression à partir de son arrivée.
+actor DownloadRegistry {
+    static let shared = DownloadRegistry()
+
+    private var tasks: [String: Task<URL, Error>] = [:]
+    private var listeners: [String: [UUID: @Sendable (Double) -> Void]] = [:]
+
+    func run(key: String, progress: (@Sendable (Double) -> Void)?,
+             work: @escaping @Sendable (@escaping @Sendable (Double) -> Void) async throws -> URL) async throws -> URL {
+        let id = UUID()
+        if let progress { listeners[key, default: [:]][id] = progress }
+        defer { listeners[key]?[id] = nil }
+        if let running = tasks[key] { return try await running.value }
+
+        let task = Task { try await work { fraction in Task { await self.report(key, fraction) } } }
+        tasks[key] = task
+        defer { tasks[key] = nil }
+        return try await task.value
+    }
+
+    private func report(_ key: String, _ fraction: Double) {
+        listeners[key]?.values.forEach { $0(fraction) }
     }
 }

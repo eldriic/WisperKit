@@ -22,3 +22,10 @@
 "1.1 GB" = "1,1 Go";
 "470 MB" = "470 Mo";
 "%@ GB" = "%@ Go";
+"Performance" = "Performances";
+"Use the graphics card (Vulkan)" = "Utiliser la carte graphique (Vulkan)";
+"Faster on most PCs. Turn it off if WisperKit crashes or transcribes nonsense." = "Plus rapide sur la plupart des PC. Désactive-la si WisperKit plante ou transcrit n'importe quoi.";
+"WisperKit crashed while using the graphics card: it now uses the processor." = "WisperKit a planté en utilisant la carte graphique : il utilise désormais le processeur.";
+"Restart WisperKit to apply." = "Relance WisperKit pour appliquer.";
+"In use: %@" = "Utilisé : %@";
+"Use Ctrl, Alt or Win with a key, or a function key. Esc cancels." = "Utilise Ctrl, Alt ou Win avec une touche, ou une touche de fonction. Échap annule.";

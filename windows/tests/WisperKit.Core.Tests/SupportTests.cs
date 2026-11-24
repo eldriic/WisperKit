@@ -22,6 +22,84 @@ public class ModelStoreTests
 
     [Fact]
     public void UnknownModelFallsBackToDefault() => Assert.Equal(WhisperModel.Turbo, WhisperModel.Named("nope"));
+
+    [Fact]
+    public async Task ConcurrentDownloadsOfTheSameModelShareOneRequest()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "wk-ms-" + Guid.NewGuid());
+        var handler = new SlowHandler();
+        var store = new ModelStore(dir, new HttpClient(handler));
+        var seen = new List<double>();
+        var first = store.EnsureAsync(WhisperModel.BaseModel);
+        var second = store.EnsureAsync(WhisperModel.BaseModel, new SyncProgress(seen.Add));
+        handler.Release.SetResult();
+        var paths = await Task.WhenAll(first, second);
+        Assert.Equal(1, handler.Requests);
+        Assert.Equal(paths[0], paths[1]);
+        Assert.True(store.IsInstalled(WhisperModel.BaseModel));
+        Assert.Equal(1, seen.Last());
+        // Une fois installé, plus aucune requête.
+        await store.EnsureAsync(WhisperModel.BaseModel);
+        Assert.Equal(1, handler.Requests);
+        Directory.Delete(dir, true);
+    }
+
+    sealed class SlowHandler : HttpMessageHandler
+    {
+        public readonly TaskCompletionSource Release = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public int Requests;
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            Interlocked.Increment(ref Requests);
+            await Release.Task;
+            return new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new ByteArrayContent(new byte[100_000]) };
+        }
+    }
+
+    sealed class SyncProgress(Action<double> report) : IProgress<double>
+    {
+        public void Report(double value) { lock (this) report(value); }
+    }
+}
+
+public class ShortcutRulesTests
+{
+    [Theory]
+    [InlineData(true, true, false, 0x44, true)]    // Ctrl+Alt+D
+    [InlineData(false, false, true, 0x48, true)]   // Win+H
+    [InlineData(false, false, false, 0x7B, true)]  // F12 seule
+    [InlineData(false, false, false, 0x44, false)] // D seul : bloquerait la lettre
+    [InlineData(true, false, false, 0x1B, false)]  // Ctrl+Échap
+    [InlineData(false, false, false, 0, false)]
+    public void RequiresAModifierOrAFunctionKey(bool ctrl, bool alt, bool win, int vk, bool allowed) =>
+        Assert.Equal(allowed, ShortcutRules.IsAllowed(ctrl, alt, win, vk));
+
+    [Fact]
+    public void GuardsMenusOnlyForWinOrAlt()
+    {
+        Assert.True(ShortcutRules.NeedsMenuGuard(alt: false, win: true));
+        Assert.True(ShortcutRules.NeedsMenuGuard(alt: true, win: false));
+        Assert.False(ShortcutRules.NeedsMenuGuard(alt: false, win: false));
+    }
+}
+
+public class GpuGuardTests
+{
+    [Fact]
+    public void DetectsAnUnfinishedGpuCall()
+    {
+        var guard = new GpuGuard(Path.Combine(Path.GetTempPath(), "wk-gpu-" + Guid.NewGuid(), "gpu-in-use"));
+        using (guard.Enter()) { }
+        Assert.False(guard.ConsumeCrash()); // appel terminé normalement
+
+        guard.Enter(); // le processus « meurt » sans sortir
+        Assert.True(guard.ConsumeCrash());
+        Assert.False(guard.ConsumeCrash()); // signalé une seule fois
+
+        guard.Enter(); // calcul en cours quand l'utilisateur quitte
+        guard.Clear();
+        Assert.False(guard.ConsumeCrash());
+    }
 }
 
 public class SettingsTests

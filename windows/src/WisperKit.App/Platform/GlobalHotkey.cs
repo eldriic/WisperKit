@@ -1,6 +1,8 @@
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Windows.Input;
+using WisperKit.Core;
 using static WisperKit.App.Platform.NativeMethods;
 
 namespace WisperKit.App.Platform;
@@ -10,6 +12,7 @@ internal readonly record struct Shortcut(bool Ctrl, bool Alt, bool Shift, bool W
 {
     public static Shortcut Default { get; } = Parse("Ctrl+Alt+D")!.Value;
 
+    /// <summary>Raccourci lu, ou null s'il est illisible ou refusé par <see cref="ShortcutRules"/>.</summary>
     public static Shortcut? Parse(string? text)
     {
         if (string.IsNullOrWhiteSpace(text)) return null;
@@ -29,8 +32,11 @@ internal readonly record struct Shortcut(bool Ctrl, bool Alt, bool Shift, bool W
                     break;
             }
         }
-        return vk == 0 ? null : new Shortcut(ctrl, alt, shift, win, vk);
+        var shortcut = new Shortcut(ctrl, alt, shift, win, vk);
+        return shortcut.IsAllowed ? shortcut : null;
     }
+
+    public bool IsAllowed => ShortcutRules.IsAllowed(Ctrl, Alt, Win, VirtualKey);
 
     public override string ToString()
     {
@@ -49,75 +55,146 @@ internal readonly record struct Shortcut(bool Ctrl, bool Alt, bool Shift, bool W
 }
 
 /// <summary>Hook clavier global (appui et relâchement) : bascule, mode « maintenir » et Échap.
-/// Les touches simulées par WisperKit lui-même (LLKHF_INJECTED) sont ignorées.</summary>
+/// Le hook vit sur un thread dédié avec sa propre boucle de messages : si le thread de l'interface
+/// est occupé (presse-papiers, rendu…), Windows ne le retire pas pour dépassement de LowLevelHooksTimeout.
+/// Les événements sont donc levés sur ce thread : les abonnés doivent repasser sur l'interface.
+/// Les touches simulées (LLKHF_INJECTED), y compris celles de WisperKit, sont ignorées.</summary>
 internal sealed class GlobalHotkey : IDisposable
 {
     private readonly LowLevelKeyboardProc _proc; // gardé en champ : sinon collecté par le GC
+    private readonly Thread _thread;
+    private readonly ManualResetEventSlim _ready = new();
+    private uint _threadId;
     private IntPtr _hook;
     private bool _held;
+    private volatile StrongBox<Shortcut> _shortcut = new(Shortcut.Default);
+    private volatile Action<Shortcut?>? _capture;
 
-    public Shortcut Shortcut { get; set; } = Shortcut.Default;
-    /// <summary>Échap est capturé seulement quand ceci renvoie vrai (pendant l'écoute).</summary>
+    /// <summary>Raccourci actif (lu depuis le thread du hook).</summary>
+    public Shortcut Shortcut
+    {
+        get => _shortcut.Value;
+        set => _shortcut = new StrongBox<Shortcut>(value);
+    }
+
+    /// <summary>Échap est capturé seulement quand ceci renvoie vrai (pendant l'écoute). Appelé sur le thread du hook.</summary>
     public Func<bool> EscapeActive { get; set; } = () => false;
 
     public event Action? Pressed;
     public event Action? Released;
     public event Action? EscapePressed;
 
-    /// <summary>Mode capture (enregistrement d'un nouveau raccourci dans les réglages).</summary>
-    public Action<Shortcut>? Capture { get; set; }
+    /// <summary>Mode capture : la prochaine combinaison valide est transmise ; null si Échap annule.
+    /// Les combinaisons refusées (sans Ctrl/Alt/Win) sont avalées et la capture continue.</summary>
+    public Action<Shortcut?>? Capture
+    {
+        get => _capture;
+        set => _capture = value;
+    }
 
     public GlobalHotkey()
     {
         _proc = HookProc;
-        using var module = Process.GetCurrentProcess().MainModule;
-        _hook = SetWindowsHookExW(WH_KEYBOARD_LL, _proc, GetModuleHandleW(module?.ModuleName), 0);
+        _thread = new Thread(Run) { IsBackground = true, Name = "WisperKit keyboard hook" };
+        _thread.Start();
+        _ready.Wait(TimeSpan.FromSeconds(5));
+    }
+
+    private void Run()
+    {
+        _threadId = GetCurrentThreadId();
+        using (var module = Process.GetCurrentProcess().MainModule)
+            _hook = SetWindowsHookExW(WH_KEYBOARD_LL, _proc, GetModuleHandleW(module?.ModuleName), 0);
         if (_hook == IntPtr.Zero)
-            WisperKit.Core.DiagnosticLog.Write($"hook clavier impossible (erreur {Marshal.GetLastWin32Error()})");
+            DiagnosticLog.Write($"hook clavier impossible (erreur {Marshal.GetLastWin32Error()})");
+        _ready.Set();
+        // Boucle de messages : indispensable pour que Windows appelle le hook sur ce thread.
+        while (GetMessage(out _, IntPtr.Zero, 0, 0) > 0) { }
+        if (_hook != IntPtr.Zero) UnhookWindowsHookEx(_hook);
+        _hook = IntPtr.Zero;
     }
 
     private IntPtr HookProc(int nCode, IntPtr wParam, IntPtr lParam)
     {
         if (nCode >= 0)
         {
-            var info = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
-            var injected = (info.flags & LLKHF_INJECTED) != 0;
-            var msg = (int)wParam;
-            var down = msg is WM_KEYDOWN or WM_SYSKEYDOWN;
-            var up = msg is WM_KEYUP or WM_SYSKEYUP;
-            var vk = (int)info.vkCode;
-
-            if (!injected && Capture is { } capture && down && !IsModifier(vk))
+            try
             {
-                var shortcut = new Shortcut(IsDown(VK_CONTROL), IsDown(VK_MENU), IsDown(VK_SHIFT),
-                                            IsDown(VK_LWIN) || IsDown(VK_RWIN), vk);
-                Capture = null;
-                capture(shortcut);
-                return 1;
+                if (Handle(wParam, lParam)) return 1;
             }
-
-            if (!injected && vk == Shortcut.VirtualKey)
+            catch (Exception e)
             {
-                if (down && (_held || Shortcut.ModifiersMatch()))
-                {
-                    if (!_held) { _held = true; Pressed?.Invoke(); }
-                    return 1; // ne pas taper la lettre dans l'app active (répétition comprise)
-                }
-                if (up && _held)
-                {
-                    _held = false;
-                    Released?.Invoke();
-                    return 1;
-                }
-            }
-
-            if (!injected && down && vk == VK_ESCAPE && EscapeActive())
-            {
-                EscapePressed?.Invoke();
-                return 1;
+                DiagnosticLog.Write($"hook clavier : {e.Message}");
             }
         }
         return CallNextHookEx(_hook, nCode, wParam, lParam);
+    }
+
+    /// <summary>Vrai si la touche est consommée (non transmise à l'app active).</summary>
+    private bool Handle(IntPtr wParam, IntPtr lParam)
+    {
+        var info = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
+        if ((info.flags & LLKHF_INJECTED) != 0) return false;
+        var msg = (int)wParam;
+        var down = msg is WM_KEYDOWN or WM_SYSKEYDOWN;
+        var up = msg is WM_KEYUP or WM_SYSKEYUP;
+        var vk = (int)info.vkCode;
+
+        if (_capture is { } capture && down && !IsModifier(vk))
+        {
+            if (vk == VK_ESCAPE)
+            {
+                _capture = null;
+                capture(null);
+                return true;
+            }
+            var shortcut = new Shortcut(IsDown(VK_CONTROL), IsDown(VK_MENU), IsDown(VK_SHIFT),
+                                        IsDown(VK_LWIN) || IsDown(VK_RWIN), vk);
+            GuardMenus(shortcut);
+            if (!shortcut.IsAllowed) return true; // refusée : on attend une autre combinaison
+            _capture = null;
+            capture(shortcut);
+            return true;
+        }
+
+        var current = Shortcut;
+        if (vk == current.VirtualKey)
+        {
+            if (down && (_held || current.ModifiersMatch()))
+            {
+                if (!_held)
+                {
+                    _held = true;
+                    GuardMenus(current);
+                    Pressed?.Invoke();
+                }
+                return true; // ne pas taper la lettre dans l'app active (répétition comprise)
+            }
+            if (up && _held)
+            {
+                _held = false;
+                Released?.Invoke();
+                return true;
+            }
+        }
+
+        if (down && vk == VK_ESCAPE && EscapeActive())
+        {
+            EscapePressed?.Invoke();
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>La touche principale étant avalée, Windows verrait Win ou Alt pressés puis relâchés seuls
+    /// et ouvrirait le menu Démarrer ou la barre de menus (qui volerait le texte collé).
+    /// Une touche non attribuée injectée entre les deux l'en empêche.</summary>
+    private static void GuardMenus(Shortcut s)
+    {
+        if (!ShortcutRules.NeedsMenuGuard(s.Alt, s.Win)) return;
+        // Envoi immédiat, depuis le hook : la touche doit précéder à coup sûr le relâchement de Win/Alt.
+        // Elle repasse dans ce hook marquée LLKHF_INJECTED, donc ignorée.
+        Send(Key(VK_UNASSIGNED, false), Key(VK_UNASSIGNED, true));
     }
 
     private static bool IsModifier(int vk) => vk is VK_SHIFT or VK_CONTROL or VK_MENU or VK_LWIN or VK_RWIN
@@ -125,7 +202,8 @@ internal sealed class GlobalHotkey : IDisposable
 
     public void Dispose()
     {
-        if (_hook != IntPtr.Zero) UnhookWindowsHookEx(_hook);
-        _hook = IntPtr.Zero;
+        if (_threadId != 0) PostThreadMessage(_threadId, WM_QUIT, IntPtr.Zero, IntPtr.Zero);
+        _thread.Join(TimeSpan.FromSeconds(1));
+        _ready.Dispose();
     }
 }

@@ -23,11 +23,16 @@ public sealed record WhisperModel(string Id, string Title, string Detail, string
 }
 
 /// <summary>Stockage local des modèles : %LOCALAPPDATA%\WisperKit\Models.</summary>
-public sealed class ModelStore(string directory)
+public sealed class ModelStore(string directory, HttpClient? http = null)
 {
     public static ModelStore Default { get; } = new(Path.Combine(AppPaths.LocalData, "Models"));
 
-    private static readonly HttpClient Http = CreateClient();
+    private static readonly HttpClient SharedHttp = CreateClient();
+    private readonly HttpClient Http = http ?? SharedHttp;
+    private readonly object _lock = new();
+    /// <summary>Téléchargements en cours, partagés : la page Modèle et le chargement du modèle actif
+    /// peuvent demander le même fichier en même temps sans se disputer le .part.</summary>
+    private readonly Dictionary<string, Download> _inflight = [];
 
     public string Directory { get; } = directory;
 
@@ -47,14 +52,54 @@ public sealed class ModelStore(string directory)
             ? new DirectoryInfo(Directory).EnumerateFiles().Sum(f => f.Length)
             : 0;
 
-    /// <summary>Télécharge le modèle si besoin (progression 0…1) et renvoie son chemin.</summary>
+    /// <summary>Télécharge le modèle si besoin (progression 0…1) et renvoie son chemin.
+    /// Un appel pendant un téléchargement du même modèle s'y joint au lieu d'en lancer un second.
+    /// L'annulation n'abandonne que l'attente de cet appelant.</summary>
     public async Task<string> EnsureAsync(WhisperModel model, IProgress<double>? progress = null,
                                           CancellationToken cancellationToken = default)
     {
         var target = PathFor(model);
         if (File.Exists(target)) return target;
+        Download download;
+        lock (_lock)
+        {
+            if (!_inflight.TryGetValue(model.Id, out download!))
+            {
+                download = new Download();
+                _inflight[model.Id] = download;
+                download.Task = Task.Run(async () =>
+                {
+                    try { return await DownloadAsync(model, download.Report); }
+                    finally { lock (_lock) _inflight.Remove(model.Id); }
+                });
+            }
+        }
+        Action<double>? handler = progress is null ? null : progress.Report;
+        if (handler is not null) download.Progress += handler;
+        try
+        {
+            return await download.Task.WaitAsync(cancellationToken);
+        }
+        finally
+        {
+            if (handler is not null) download.Progress -= handler;
+        }
+    }
+
+    private sealed class Download
+    {
+        public Task<string> Task = null!;
+        public event Action<double>? Progress;
+        public void Report(double fraction) => Progress?.Invoke(fraction);
+    }
+
+    private async Task<string> DownloadAsync(WhisperModel model, Action<double> progress)
+    {
+        var target = PathFor(model);
+        if (File.Exists(target)) return target;
         System.IO.Directory.CreateDirectory(Directory);
         var part = target + ".part";
+        var cancellationToken = CancellationToken.None;
 
         using var response = await Http.GetAsync(model.Url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         response.EnsureSuccessStatusCode();
@@ -73,12 +118,12 @@ public sealed class ModelStore(string directory)
                 if (total is > 0)
                 {
                     var fraction = (double)done / total.Value;
-                    if (fraction - lastReport >= 0.005) { progress?.Report(fraction); lastReport = fraction; }
+                    if (fraction - lastReport >= 0.005) { progress(fraction); lastReport = fraction; }
                 }
             }
         }
         File.Move(part, target, overwrite: true);
-        progress?.Report(1);
+        progress(1);
         return target;
     }
 

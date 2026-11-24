@@ -13,7 +13,7 @@ internal enum ModelStatus { Missing, Downloading, Loading, Ready, Failed }
 internal sealed class AppController : IDisposable
 {
     private readonly Dispatcher _ui = Dispatcher.CurrentDispatcher;
-    private readonly Transcriber _transcriber = new();
+    private readonly Transcriber _transcriber;
     private readonly GlobalHotkey _hotkey;
     private readonly RecordingHud _hud;
     private bool _askedAboutMic;
@@ -22,6 +22,8 @@ internal sealed class AppController : IDisposable
     public DictationController Dictation { get; }
     public ModelStore Store { get; } = ModelStore.Default;
     public bool IsFirstLaunch { get; }
+    /// <summary>Le GPU a planté lors du lancement précédent : le processeur a pris le relais.</summary>
+    public bool GpuCrashed { get; }
 
     public ModelStatus ModelStatus { get; private set; } = ModelStatus.Missing;
     public double ModelProgress { get; private set; }
@@ -39,6 +41,15 @@ internal sealed class AppController : IDisposable
         SetLanguage(Settings.InterfaceLanguage);
         Sounds.Enabled = Settings.Sounds;
 
+        if (!renderOnly && GpuGuard.Default.ConsumeCrash() && Settings.UseGpu)
+        {
+            GpuCrashed = true;
+            Settings.UseGpu = false;
+            Save();
+            DiagnosticLog.Write("plantage pendant l'usage du GPU au lancement précédent : passage au processeur");
+        }
+        _transcriber = new Transcriber(Settings.UseGpu, GpuGuard.Default);
+
         Dictation = new DictationController(new AudioRecorder(), _transcriber, new TextInserter());
         ApplySettings();
         Dictation.StateChanged += () => Changed?.Invoke();
@@ -54,7 +65,9 @@ internal sealed class AppController : IDisposable
             _hotkey.Released += () => _ui.BeginInvoke(OnShortcutUp);
             _hotkey.EscapePressed += () => _ui.BeginInvoke(Dictation.Cancel);
             if (IsFirstLaunch) { Settings.Onboarded = true; Save(); }
-            _ = LoadActiveModelAsync();
+            // Après app.Run() : les suites des await reviennent ainsi sur le thread de l'interface
+            // (avant Run il n'y a pas encore de SynchronizationContext).
+            _ui.BeginInvoke(() => _ = LoadActiveModelAsync());
         }
         DiagnosticLog.Write($"démarrage {Environment.ProcessPath} micro={(MicrophonePrivacy.HasDevice ? "ok" : "absent")} bloqué={MicrophonePrivacy.IsBlocked}");
     }
@@ -94,11 +107,23 @@ internal sealed class AppController : IDisposable
         Update(s => s.Shortcut = shortcut.ToString());
     }
 
-    /// <summary>Capture la prochaine combinaison de touches comme nouveau raccourci.</summary>
-    public void RecordShortcut(Action<Shortcut> done) =>
-        _hotkey.Capture = s => _ui.BeginInvoke(() => { SetShortcut(s); done(s); });
+    /// <summary>Capture la prochaine combinaison valide comme nouveau raccourci (null : annulée par Échap).</summary>
+    public void RecordShortcut(Action<Shortcut?> done) =>
+        _hotkey.Capture = s => _ui.BeginInvoke(() =>
+        {
+            if (s is { } shortcut) SetShortcut(shortcut);
+            done(s);
+        });
+
+    public void CancelShortcutRecording() => _hotkey.Capture = null;
 
     public string ShortcutLabel => (Shortcut.Parse(Settings.Shortcut) ?? Shortcut.Default).ToString();
+
+    /// <summary>Le réglage GPU ne s'applique qu'au prochain lancement.</summary>
+    public bool GpuRestartPending => Settings.UseGpu != _transcriber.UsesGpu;
+
+    /// <summary>Bibliothèque de calcul réellement utilisée (affichée dans la page Modèle).</summary>
+    public string? Runtime => _transcriber.Runtime;
 
     public bool StartWithWindows
     {
@@ -180,7 +205,7 @@ internal sealed class AppController : IDisposable
             await _transcriber.LoadAsync(model, Store, progress);
             if (ActiveModel != model) return;
             ModelStatus = ModelStatus.Ready;
-            DiagnosticLog.Write($"modèle prêt : {model.Id}");
+            DiagnosticLog.Write($"modèle prêt : {model.Id} runtime={_transcriber.Runtime ?? "?"}");
         }
         catch (Exception e)
         {
@@ -242,6 +267,7 @@ internal sealed class AppController : IDisposable
 
     public void Dispose()
     {
+        if (_hotkey is not null) GpuGuard.Default.Clear(); // sortie propre (hors mode captures)
         _hotkey?.Dispose();
         _transcriber.Dispose();
         _hud.Close();

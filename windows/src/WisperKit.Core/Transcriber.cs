@@ -1,4 +1,5 @@
 using Whisper.net;
+using Whisper.net.LibraryLoader;
 
 namespace WisperKit.Core;
 
@@ -6,7 +7,23 @@ namespace WisperKit.Core;
 public sealed class Transcriber : ITranscriber, IDisposable
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
+    private GpuGuard? _guard;
     private WhisperFactory? _factory;
+
+    /// <param name="useGpu">Faux : processeur seulement (Vulkan ignoré). Fixé au premier chargement
+    /// pour tout le processus : un changement demande de relancer l'app.</param>
+    /// <param name="guard">Témoin de plantage GPU (voir <see cref="GpuGuard"/>).</param>
+    public Transcriber(bool useGpu = true, GpuGuard? guard = null)
+    {
+        UsesGpu = useGpu;
+        _guard = useGpu ? guard : null;
+        if (!useGpu) RuntimeOptions.RuntimeLibraryOrder = [RuntimeLibrary.Cpu, RuntimeLibrary.CpuNoAvx];
+    }
+
+    public bool UsesGpu { get; }
+
+    /// <summary>Bibliothèque native réellement chargée (Vulkan, Cpu…), connue après le premier chargement.</summary>
+    public string? Runtime => RuntimeOptions.LoadedLibrary?.ToString();
 
     public WhisperModel? LoadedModel { get; private set; }
 
@@ -22,7 +39,13 @@ public sealed class Transcriber : ITranscriber, IDisposable
             _factory = null;
             LoadedModel = null;
             var path = await store.EnsureAsync(model, progress, cancellationToken);
-            _factory = await Task.Run(() => WhisperFactory.FromPath(path), cancellationToken);
+            _factory = await Task.Run(() =>
+            {
+                using var _ = _guard?.Enter();
+                return WhisperFactory.FromPath(path);
+            }, cancellationToken);
+            // Repli de Whisper.net sur le processeur (pas de pilote Vulkan) : un plantage ne viendrait pas du GPU.
+            if (RuntimeOptions.LoadedLibrary is { } loaded && loaded != RuntimeLibrary.Vulkan) _guard = null;
             LoadedModel = model;
         }
         finally
@@ -41,6 +64,7 @@ public sealed class Transcriber : ITranscriber, IDisposable
             var builder = factory.CreateBuilder();
             builder = plan.Language is null ? builder.WithLanguageDetection() : builder.WithLanguage(plan.Language);
             if (plan.TranslateTask) builder = builder.WithTranslate();
+            using var guarded = _guard?.Enter();
             await using var processor = builder.Build();
             var parts = new List<string>();
             await foreach (var segment in processor.ProcessAsync(samples, cancellationToken))
