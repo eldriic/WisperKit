@@ -27,7 +27,17 @@ internal sealed class AudioRecorder : IAudioRecorder
             BufferMilliseconds = BufferMilliseconds,
         };
         wave.DataAvailable += OnData;
-        wave.StartRecording();
+        try
+        {
+            wave.StartRecording();
+        }
+        catch
+        {
+            // Micro occupé ou refusé : ne pas garder le périphérique ouvert.
+            wave.DataAvailable -= OnData;
+            wave.Dispose();
+            throw;
+        }
         _wave = wave;
     }
 

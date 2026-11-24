@@ -101,28 +101,40 @@ public sealed class ModelStore(string directory, HttpClient? http = null)
         var part = target + ".part";
         var cancellationToken = CancellationToken.None;
 
-        using var response = await Http.GetAsync(model.Url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        var total = response.Content.Headers.ContentLength;
-        await using (var source = await response.Content.ReadAsStreamAsync(cancellationToken))
-        await using (var file = File.Create(part))
+        try
         {
-            var buffer = new byte[1 << 16];
+            using var response = await Http.GetAsync(model.Url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            var total = response.Content.Headers.ContentLength;
             long done = 0;
-            int read;
-            var lastReport = 0.0;
-            while ((read = await source.ReadAsync(buffer, cancellationToken)) > 0)
+            await using (var source = await response.Content.ReadAsStreamAsync(cancellationToken))
+            await using (var file = File.Create(part))
             {
-                await file.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
-                done += read;
-                if (total is > 0)
+                var buffer = new byte[1 << 16];
+                int read;
+                var lastReport = 0.0;
+                while ((read = await source.ReadAsync(buffer, cancellationToken)) > 0)
                 {
-                    var fraction = (double)done / total.Value;
-                    if (fraction - lastReport >= 0.005) { progress(fraction); lastReport = fraction; }
+                    await file.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+                    done += read;
+                    if (total is > 0)
+                    {
+                        var fraction = (double)done / total.Value;
+                        if (fraction - lastReport >= 0.005) { progress(fraction); lastReport = fraction; }
+                    }
                 }
             }
+            // Connexion coupée en cours de route : le flux se termine sans erreur mais le fichier est tronqué.
+            // Il ne doit jamais devenir un modèle « installé » (illisible, et impossible à retélécharger).
+            if (done == 0 || (total is > 0 && done != total.Value))
+                throw new IOException($"Incomplete download ({done} of {total?.ToString() ?? "?"} bytes).");
+            File.Move(part, target, overwrite: true);
         }
-        File.Move(part, target, overwrite: true);
+        catch
+        {
+            try { File.Delete(part); } catch { }
+            throw;
+        }
         progress(1);
         return target;
     }

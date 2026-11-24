@@ -128,4 +128,31 @@ internal static class TrayMenu
         bitmap.Freeze();
         return bitmap;
     }
+
+    /// <summary>Même icône, convertie en <see cref="System.Drawing.Icon"/> pour la zone de notification :
+    /// H.NotifyIcon ne sait pas convertir un <see cref="RenderTargetBitmap"/> passé à IconSource
+    /// (NotImplementedException levée sur le pool de threads, qui faisait quitter l'app au lancement).</summary>
+    public static System.Drawing.Icon TrayIconHandle(DictationController.DictationState state, ModelStatus model)
+    {
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create((BitmapSource)TrayIcon(state, model)));
+        using var png = new System.IO.MemoryStream();
+        encoder.Save(png);
+        return new System.Drawing.Icon(new System.IO.MemoryStream(IcoFromPng(png.ToArray(), 32)));
+    }
+
+    /// <summary>Fichier .ico d'une seule image PNG (format accepté depuis Windows Vista).</summary>
+    internal static byte[] IcoFromPng(byte[] png, int size)
+    {
+        using var ico = new System.IO.MemoryStream();
+        using var w = new System.IO.BinaryWriter(ico);
+        w.Write((short)0); w.Write((short)1); w.Write((short)1);       // ICONDIR : réservé, type icône, 1 image
+        w.Write((byte)(size >= 256 ? 0 : size)); w.Write((byte)(size >= 256 ? 0 : size));
+        w.Write((byte)0); w.Write((byte)0);                            // palette, réservé
+        w.Write((short)1); w.Write((short)32);                         // plans, bits par pixel
+        w.Write(png.Length); w.Write(6 + 16);                          // taille et position de l'image
+        w.Write(png);
+        w.Flush();
+        return ico.ToArray();
+    }
 }

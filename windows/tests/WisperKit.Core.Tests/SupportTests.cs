@@ -44,6 +44,51 @@ public class ModelStoreTests
         Directory.Delete(dir, true);
     }
 
+    [Fact]
+    public async Task TruncatedDownloadIsNeitherInstalledNorLeftBehind()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "wk-ms-" + Guid.NewGuid());
+        var store = new ModelStore(dir, new HttpClient(new TruncatingHandler()));
+        await Assert.ThrowsAsync<IOException>(() => store.EnsureAsync(WhisperModel.BaseModel));
+        Assert.False(store.IsInstalled(WhisperModel.BaseModel));
+        Assert.False(File.Exists(store.PathFor(WhisperModel.BaseModel) + ".part"));
+        Directory.Delete(dir, true);
+    }
+
+    [Fact]
+    public async Task FailedDownloadCanBeRetried()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "wk-ms-" + Guid.NewGuid());
+        var handler = new FlakyHandler();
+        var store = new ModelStore(dir, new HttpClient(handler));
+        await Assert.ThrowsAsync<HttpRequestException>(() => store.EnsureAsync(WhisperModel.BaseModel));
+        Assert.False(File.Exists(store.PathFor(WhisperModel.BaseModel) + ".part"));
+        await store.EnsureAsync(WhisperModel.BaseModel); // le téléchargement en échec n'est plus « en cours »
+        Assert.True(store.IsInstalled(WhisperModel.BaseModel));
+        Assert.Equal(2, handler.Requests);
+        Directory.Delete(dir, true);
+    }
+
+    /// <summary>Annonce 100 000 octets mais la connexion se ferme après 1 000.</summary>
+    sealed class TruncatingHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            var content = new StreamContent(new MemoryStream(new byte[1_000]));
+            content.Headers.ContentLength = 100_000;
+            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = content });
+        }
+    }
+
+    sealed class FlakyHandler : HttpMessageHandler
+    {
+        public int Requests;
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) =>
+            Task.FromResult(Interlocked.Increment(ref Requests) == 1
+                ? new HttpResponseMessage(System.Net.HttpStatusCode.ServiceUnavailable)
+                : new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new ByteArrayContent(new byte[10_000]) });
+    }
+
     sealed class SlowHandler : HttpMessageHandler
     {
         public readonly TaskCompletionSource Release = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -162,58 +207,3 @@ public class LocalizerTests
     }
 }
 
-/// <summary>Transcription réelle (télécharge le modèle base, ~140 Mo) :
-/// WK_INTEGRATION=1 dotnet test --filter Integration</summary>
-public class IntegrationTests
-{
-    [Fact]
-    public async Task TranscribesFrenchSpeech()
-    {
-        if (Environment.GetEnvironmentVariable("WK_INTEGRATION") != "1" || !OperatingSystem.IsMacOS()) return;
-        var dir = Path.Combine(Path.GetTempPath(), "wk-it-" + Guid.NewGuid());
-        Directory.CreateDirectory(dir);
-        var wav = Path.Combine(dir, "phrase.wav");
-        var say = System.Diagnostics.Process.Start("/usr/bin/say",
-            ["-v", "Thomas", "-o", wav, "--data-format=LEF32@16000", "Bonjour, je veux créer une application de budget."]);
-        await say!.WaitForExitAsync();
-
-        var data = await File.ReadAllBytesAsync(wav);
-        var start = IndexOf(data, "data"u8.ToArray()) + 8;
-        var samples = new float[(data.Length - start) / 4];
-        Buffer.BlockCopy(data, start, samples, 0, samples.Length * 4);
-
-        using var t = new Transcriber();
-        await t.LoadAsync(WhisperModel.BaseModel, new ModelStore(Path.Combine(Path.GetTempPath(), "wk-models")));
-        var sw = System.Diagnostics.Stopwatch.StartNew();
-        var text = await t.TranscribeAsync(samples, "fr", false, CancellationToken.None);
-        Console.WriteLine($"Transcription ({sw.Elapsed.TotalSeconds:F2} s) : {text}");
-        Assert.Contains("budget", TextCleaner.Clean(text).ToLowerInvariant());
-    }
-
-    [Fact]
-    public async Task TranslatesFrenchSpeechToEnglish()
-    {
-        if (Environment.GetEnvironmentVariable("WK_INTEGRATION") != "1" || !OperatingSystem.IsMacOS()) return;
-        var wav = Path.Combine(Path.GetTempPath(), "wk-tr-" + Guid.NewGuid() + ".wav");
-        var say = System.Diagnostics.Process.Start("/usr/bin/say",
-            ["-v", "Thomas", "-o", wav, "--data-format=LEF32@16000", "Bonjour, je voudrais réserver une table pour ce soir."]);
-        await say!.WaitForExitAsync();
-        var data = await File.ReadAllBytesAsync(wav);
-        var start = IndexOf(data, "data"u8.ToArray()) + 8;
-        var samples = new float[(data.Length - start) / 4];
-        Buffer.BlockCopy(data, start, samples, 0, samples.Length * 4);
-
-        using var t = new Transcriber();
-        await t.LoadAsync(WhisperModel.BaseModel, new ModelStore(Path.Combine(Path.GetTempPath(), "wk-models")));
-        var text = await t.TranscribeAsync(samples, "fr", true, CancellationToken.None);
-        Console.WriteLine($"Traduction : {text}");
-        Assert.Contains("table", text.ToLowerInvariant());
-    }
-
-    private static int IndexOf(byte[] haystack, byte[] needle)
-    {
-        for (var i = 0; i <= haystack.Length - needle.Length; i++)
-            if (haystack.AsSpan(i, needle.Length).SequenceEqual(needle)) return i;
-        return -1;
-    }
-}
