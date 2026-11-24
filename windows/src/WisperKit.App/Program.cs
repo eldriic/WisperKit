@@ -35,7 +35,13 @@ internal static class Program
             DiagnosticLog.Write($"exception : {e.Exception}");
             e.Handled = true;
         };
-        AppDomain.CurrentDomain.UnhandledException += (_, e) => DiagnosticLog.Write($"exception fatale : {e.ExceptionObject}");
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+        {
+            DiagnosticLog.Write($"exception fatale : {e.ExceptionObject}");
+            // Exception .NET : ce n'est pas le pilote GPU qui a planté. Sans ceci, une exception levée
+            // pendant le chargement du modèle laissait le témoin et coupait Vulkan au lancement suivant.
+            GpuGuard.Default.Clear();
+        };
 
         using var controller = new AppController();
         SettingsWindow? settings = null;
@@ -56,7 +62,7 @@ internal static class Program
         using var tray = new TaskbarIcon
         {
             ToolTipText = "WisperKit",
-            IconSource = TrayMenu.TrayIcon(controller.Dictation.State, controller.ModelStatus),
+            Icon = TrayMenu.TrayIconHandle(controller.Dictation.State, controller.ModelStatus),
             PopupActivation = PopupActivationMode.LeftOrRightClick,
             TrayPopup = popupHost,
             NoLeftClickDelay = true,
@@ -66,9 +72,18 @@ internal static class Program
             popupHost.Child = TrayMenu.Build(controller, ClosePopup, OpenSettings, () => app.Shutdown());
         tray.ForceCreate(false);
 
+        // L'icône n'est régénérée que si son aspect change (Changed est très fréquent pendant un téléchargement).
+        var shownIcon = (controller.Dictation.State, controller.ModelStatus);
         controller.Changed += () => app.Dispatcher.BeginInvoke(() =>
         {
-            tray.IconSource = TrayMenu.TrayIcon(controller.Dictation.State, controller.ModelStatus);
+            var wanted = (controller.Dictation.State, controller.ModelStatus);
+            if (wanted != shownIcon)
+            {
+                var old = tray.Icon;
+                tray.Icon = TrayMenu.TrayIconHandle(wanted.State, wanted.ModelStatus);
+                old?.Dispose();
+                shownIcon = wanted;
+            }
             tray.ToolTipText = "WisperKit · " + controller.StatusLine;
         });
 
@@ -139,6 +154,10 @@ internal static class Snapshots
         }
         Save(new Image { Source = TrayMenu.TrayIcon(DictationController.DictationState.Recording, ModelStatus.Ready), Width = 64, Height = 64 },
              System.IO.Path.Combine(directory, "tray-icon-recording.png"));
+        // Même conversion que la zone de notification : un échec ici fait échouer la CI au lieu de l'app.
+        using (var icon = TrayMenu.TrayIconHandle(DictationController.DictationState.Recording, ModelStatus.Ready))
+        using (var file = System.IO.File.Create(System.IO.Path.Combine(directory, "tray-icon-recording.ico")))
+            icon.Save(file);
         app.Shutdown();
         return 0;
     }

@@ -120,7 +120,9 @@ internal sealed class TextInserter : ITextOutput
     internal static void SetData(uint format, byte[] bytes)
     {
         var handle = GlobalAlloc(GMEM_MOVEABLE, (nuint)Math.Max(bytes.Length, 1));
+        if (handle == IntPtr.Zero) return;
         var ptr = GlobalLock(handle);
+        if (ptr == IntPtr.Zero) { GlobalFree(handle); return; }
         if (bytes.Length > 0) Marshal.Copy(bytes, 0, ptr, bytes.Length);
         GlobalUnlock(handle);
         if (SetClipboardData(format, handle) == IntPtr.Zero) GlobalFree(handle);

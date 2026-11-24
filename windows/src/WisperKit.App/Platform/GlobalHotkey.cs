@@ -160,6 +160,13 @@ internal sealed class GlobalHotkey : IDisposable
         var current = Shortcut;
         if (vk == current.VirtualKey)
         {
+            // Relâchement jamais reçu (session verrouillée, autre hook…) : plus aucun modificateur n'est
+            // enfoncé, ce n'est donc plus le raccourci mais la lettre seule, qui doit passer.
+            if (down && _held && !current.ModifiersMatch() && !AnyModifierDown())
+            {
+                _held = false;
+                Released?.Invoke();
+            }
             if (down && (_held || current.ModifiersMatch()))
             {
                 if (!_held)
@@ -196,6 +203,9 @@ internal sealed class GlobalHotkey : IDisposable
         // Elle repasse dans ce hook marquée LLKHF_INJECTED, donc ignorée.
         Send(Key(VK_UNASSIGNED, false), Key(VK_UNASSIGNED, true));
     }
+
+    private static bool AnyModifierDown() =>
+        IsDown(VK_CONTROL) || IsDown(VK_MENU) || IsDown(VK_SHIFT) || IsDown(VK_LWIN) || IsDown(VK_RWIN);
 
     private static bool IsModifier(int vk) => vk is VK_SHIFT or VK_CONTROL or VK_MENU or VK_LWIN or VK_RWIN
         or VK_LSHIFT or VK_RSHIFT or VK_LCONTROL or VK_RCONTROL or VK_LMENU or VK_RMENU;
