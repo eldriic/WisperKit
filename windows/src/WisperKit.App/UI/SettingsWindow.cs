@@ -25,7 +25,7 @@ internal sealed class SettingsWindow : Window
     {
         _app = app;
         _page = page;
-        Title = "WisperKit Settings";
+        Title = "WisperKit · " + L("Settings");
         Width = 780;
         Height = 580;
         MinWidth = 640;
@@ -66,6 +66,7 @@ internal sealed class SettingsWindow : Window
     public void Rebuild()
     {
         if (_recording) return; // ne pas effacer le message « appuie sur le nouveau raccourci »
+        Title = "WisperKit · " + L("Settings");
         _sidebar.Children.Clear();
         _sidebar.Children.Add(WithMargin(Theme.Label(L("Settings"), 11, Theme.Secondary), new Thickness(10, 0, 0, 6)));
         foreach (var (page, glyph, title) in new[]
