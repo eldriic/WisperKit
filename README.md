@@ -90,7 +90,7 @@ WisperKit for Windows is a native tray app with the same features: global shortc
 Requirements: **Windows 10 (1809) or 11**, x64 or ARM64, ~1 GB of free disk space for the default model.
 
 1. Download [`WisperKit-Setup-x64.exe`](https://github.com/eldriic/WisperKit/releases/latest/download/WisperKit-Setup-x64.exe) (or [`WisperKit-Setup-arm64.exe`](https://github.com/eldriic/WisperKit/releases/latest/download/WisperKit-Setup-arm64.exe) on a Snapdragon PC) and run it. No administrator rights needed.
-2. The installer isn't signed yet, so **SmartScreen** may warn you once: click **More info → Run anyway**.
+2. The installer isn't signed yet, so **SmartScreen** may warn you once: click **More info → Run anyway**. It installs for you only by default (no administrator rights); choose **Install for all users** in the first dialog to put it in Program Files instead.
 3. A welcome window opens: the model (`large-v3-turbo`, ~550 MB) downloads once, then press <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>D</kbd> anywhere.
 
 WisperKit lives in the notification area (click the icon for the menu). No Accessibility permission is needed on Windows; if the microphone is blocked, the welcome window links to **Settings → Privacy → Microphone**. Text can't be inserted into apps running as administrator. Diagnostic log: `%LOCALAPPDATA%\WisperKit\Logs\wisperkit.log`.
@@ -239,6 +239,6 @@ Site : [wisperkit.eldriic.com](https://wisperkit.eldriic.com).
 
 **Traduction** : active **Traduire en anglais** et parle dans ta langue, le texte s'écrit directement en anglais. Option désactivée, le texte reste dans la langue parlée (détectée automatiquement).
 
-**Windows** : télécharge [`WisperKit-Setup-x64.exe`](https://github.com/eldriic/WisperKit/releases/latest/download/WisperKit-Setup-x64.exe) (ou [`-arm64`](https://github.com/eldriic/WisperKit/releases/latest/download/WisperKit-Setup-arm64.exe) sur un PC Snapdragon), lance-le (sans droits administrateur), puis si SmartScreen s'affiche : **Informations complémentaires → Exécuter quand même**. Raccourci par défaut : <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>D</kbd>.
+**Windows** : télécharge [`WisperKit-Setup-x64.exe`](https://github.com/eldriic/WisperKit/releases/latest/download/WisperKit-Setup-x64.exe) (ou [`-arm64`](https://github.com/eldriic/WisperKit/releases/latest/download/WisperKit-Setup-arm64.exe) sur un PC Snapdragon), lance-le (sans droits administrateur, ou pour tous les utilisateurs au choix), puis si SmartScreen s'affiche : **Informations complémentaires → Exécuter quand même**. Raccourci par défaut : <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>D</kbd>.
 
 Projet *vibe-codé* (construit en dialoguant avec un assistant de code IA), partagé tel quel sous licence MIT.

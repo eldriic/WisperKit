@@ -58,7 +58,8 @@ jobs:
       - name: Installers
         run: |
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
-          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Null }
+          # WisperKit.iss demande Inno Setup 6.7+ (mode sombre, couleur de fond) : on installe ou met à jour.
+          choco upgrade innosetup -y --no-progress | Out-Null
           foreach ($arch in "x64", "arm64") {
             & $iscc /Qp "/DAppVersion=${{ steps.version.outputs.value }}" "/DArch=$arch" installer/WisperKit.iss
             if ($LASTEXITCODE -ne 0) { throw "ISCC $arch : $LASTEXITCODE" }

@@ -137,6 +137,40 @@ public class AudioLevelTests
         var speech = Enumerable.Range(0, 1600).Select(i => (float)Math.Sin(i * 0.1) * 0.03f).ToArray();
         Assert.InRange(AudioFormat.NormalizedLevel(speech), 0.2f, 0.8f);
     }
+
+    private static float[] Tone(double amplitude) =>
+        Enumerable.Range(0, 800).Select(i => (float)(Math.Sin(i * 0.1) * amplitude)).ToArray();
+
+    [Fact]
+    public void QuietWindowsMicStillFillsTheWave()
+    {
+        var meter = new LevelMeter();
+        for (var i = 0; i < 10; i++) meter.Next(Tone(0.0005));          // bruit de fond ≈ -69 dBFS
+        var levels = Enumerable.Range(0, 20).Select(_ => meter.Next(Tone(0.014))).ToArray(); // voix ≈ -40 dBFS
+        Assert.True(levels.Min() > 0.9f, $"voix faible trop basse : {levels.Min()}");
+        // L'échelle fixe laissait cette même voix au quart de la hauteur.
+        Assert.True(AudioFormat.NormalizedLevel(Tone(0.014)) < 0.3f);
+        Assert.InRange(meter.SessionPeakDb, -42, -38);
+    }
+
+    [Fact]
+    public void BackgroundNoiseAloneStaysFlat()
+    {
+        var meter = new LevelMeter();
+        var levels = Enumerable.Range(0, 200).Select(i => meter.Next(Tone(i % 2 == 0 ? 0.002 : 0.0025))).ToArray();
+        Assert.True(levels.Skip(5).Max() < 0.15f, $"bruit trop visible : {levels.Skip(5).Max()}");
+        Assert.Equal(0, meter.Next([]));
+    }
+
+    [Fact]
+    public void SofterSpeechAfterLoudSpeechIsStillVisible()
+    {
+        var meter = new LevelMeter();
+        for (var i = 0; i < 10; i++) meter.Next(Tone(0.0005));
+        meter.Next(Tone(0.3));                                          // éclat de voix ≈ -13 dBFS
+        var soft = Enumerable.Range(0, 60).Select(_ => meter.Next(Tone(0.02))).Last(); // 3 s plus tard, ≈ -37 dBFS
+        Assert.True(soft > 0.5f, $"voix normale écrasée après un éclat : {soft}");
+    }
 }
 
 public class DecodingPlanTests
