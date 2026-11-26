@@ -20,6 +20,8 @@ internal static class Program
     {
         var snapshots = Option(args, "--snapshots");
         if (snapshots is not null) return Snapshots.Render(snapshots, args.Contains("--first-launch"));
+        var installerArt = Option(args, "--installer-art");
+        if (installerArt is not null) return Snapshots.RenderInstallerArt(installerArt);
 
         using var mutex = new Mutex(true, MutexName, out var first);
         if (!first)
@@ -162,14 +164,27 @@ internal static class Snapshots
         return 0;
     }
 
-    private static void Save(FrameworkElement element, string path)
+    /// <summary>Images de l'installeur aux échelles 100 à 250 % (Inno Setup choisit la plus proche du DPI).</summary>
+    public static int RenderInstallerArt(string directory)
+    {
+        System.IO.Directory.CreateDirectory(directory);
+        var app = Program.CreateApplication();
+        foreach (var percent in new[] { 100, 125, 150, 200, 250 })
+        {
+            Save(InstallerArt.Wizard(), System.IO.Path.Combine(directory, $"wizard-{percent}.png"), percent / 100.0);
+            Save(InstallerArt.Small(), System.IO.Path.Combine(directory, $"wizard-small-{percent}.png"), percent / 100.0);
+        }
+        app.Shutdown();
+        return 0;
+    }
+
+    private static void Save(FrameworkElement element, string path, double scale = 2)
     {
         element.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         var size = new Size(double.IsNaN(element.Width) ? element.DesiredSize.Width : element.Width,
                             double.IsNaN(element.Height) ? element.DesiredSize.Height : element.Height);
         element.Arrange(new Rect(size));
         element.UpdateLayout();
-        const double scale = 2;
         var bitmap = new RenderTargetBitmap((int)(size.Width * scale), (int)(size.Height * scale), 96 * scale, 96 * scale, PixelFormats.Pbgra32);
         bitmap.Render(element);
         var encoder = new PngBitmapEncoder();

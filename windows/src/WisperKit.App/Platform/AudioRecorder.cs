@@ -12,6 +12,7 @@ internal sealed class AudioRecorder : IAudioRecorder
     private readonly object _lock = new();
     private readonly List<float> _samples = [];
     private WaveIn? _wave;
+    private readonly LevelMeter _meter = new();
     private float _level;
     private ManualResetEventSlim? _tail;
 
@@ -20,7 +21,7 @@ internal sealed class AudioRecorder : IAudioRecorder
     public void Start()
     {
         if (WaveIn.DeviceCount == 0) throw new InvalidOperationException("No microphone available.");
-        lock (_lock) { _samples.Clear(); _level = 0; _tail = null; }
+        lock (_lock) { _samples.Clear(); _level = 0; _tail = null; _meter.BeginSession(); }
         var wave = new WaveIn
         {
             WaveFormat = new WaveFormat(AudioFormat.SampleRate, 16, 1),
@@ -59,6 +60,8 @@ internal sealed class AudioRecorder : IAudioRecorder
         }
         lock (_lock)
         {
+            if (_samples.Count > 0)
+                DiagnosticLog.Write($"niveau micro : crête {_meter.SessionPeakDb:0} dBFS, bruit de fond {_meter.FloorDb:0} dBFS");
             var result = _samples.ToArray();
             _samples.Clear();
             _level = 0;
@@ -72,11 +75,10 @@ internal sealed class AudioRecorder : IAudioRecorder
         var chunk = new float[count];
         for (var i = 0; i < count; i++)
             chunk[i] = BitConverter.ToInt16(e.Buffer, i * 2) / 32768f;
-        var level = AudioFormat.NormalizedLevel(chunk);
         lock (_lock)
         {
             _samples.AddRange(chunk);
-            _level = level;
+            _level = _meter.Next(chunk);
             _tail?.Set();
         }
     }
