@@ -46,6 +46,15 @@ internal static class Program
         };
 
         using var controller = new AppController();
+        UpdateWindow? updateWindow = null;
+        void OpenUpdate(AvailableUpdate update)
+        {
+            if (updateWindow is { IsLoaded: true }) { updateWindow.Activate(); return; }
+            updateWindow = new UpdateWindow(controller, update);
+            updateWindow.Closed += (_, _) => updateWindow = null;
+            updateWindow.Show();
+            updateWindow.Activate();
+        }
         SettingsWindow? settings = null;
         void OpenSettings()
         {
@@ -55,6 +64,7 @@ internal static class Program
                 return;
             }
             settings = new SettingsWindow(controller, controller.IsFirstLaunch ? SettingsPage.General : SettingsPage.General);
+            settings.OpenUpdate = OpenUpdate;
             settings.Closed += (_, _) => settings = null;
             settings.Show();
             settings.Activate();
@@ -71,8 +81,17 @@ internal static class Program
         };
         void ClosePopup() => tray.CloseTrayPopup();
         tray.TrayPopupOpen += (_, _) =>
-            popupHost.Child = TrayMenu.Build(controller, ClosePopup, OpenSettings, () => app.Shutdown());
+            popupHost.Child = TrayMenu.Build(controller, ClosePopup, OpenSettings, () => app.Shutdown(),
+                () => { if (controller.AvailableUpdate is { } u) OpenUpdate(u); });
         tray.ForceCreate(false);
+
+        // Nouvelle version : une notification par version ; un clic ouvre la fenêtre de mise à jour.
+        controller.UpdateFound += update => app.Dispatcher.BeginInvoke(() =>
+            tray.ShowNotification(Localizer.L("Update available"), Localizer.L("WisperKit %@ is available.", update.DisplayVersion)));
+        tray.TrayBalloonTipClicked += (_, _) =>
+        {
+            if (controller.AvailableUpdate is { } u) OpenUpdate(u);
+        };
 
         // L'icône n'est régénérée que si son aspect change (Changed est très fréquent pendant un téléchargement).
         var shownIcon = (controller.Dictation.State, controller.ModelStatus);
@@ -141,8 +160,21 @@ internal static class Snapshots
                      System.IO.Path.Combine(directory, $"settings-{page.ToString().ToLowerInvariant()}-{lang}.png"));
                 window.Close();
             }
-            Save(TrayMenu.Build(controller, () => { }, () => { }, () => { }),
+            Save(TrayMenu.Build(controller, () => { }, () => { }, () => { }, () => { }),
                  System.IO.Path.Combine(directory, $"tray-{lang}.png"));
+            // Mise à jour fictive : ligne du menu et fenêtre d'installation.
+            var update = new AvailableUpdate(new Version(9, 9, 0), "https://github.com/eldriic/WisperKit/releases",
+                                             new UpdateInstaller(UpdateChecker.AllowedPrefix, new string('0', 64), 1));
+            controller.ShowUpdateForSnapshots(update);
+            Save(TrayMenu.Build(controller, () => { }, () => { }, () => { }, () => { }),
+                 System.IO.Path.Combine(directory, $"tray-update-{lang}.png"));
+            var updateWindow = new UpdateWindow(controller, update);
+            var updateBody = (FrameworkElement)updateWindow.Content;
+            updateWindow.Content = null;
+            Save(new Border { Background = Theme.Popover, Child = updateBody, Width = 460 },
+                 System.IO.Path.Combine(directory, $"update-{lang}.png"));
+            updateWindow.Close();
+            controller.ShowUpdateForSnapshots(null);
         }
         foreach (var (name, level, t, transcribing) in new[] { ("hud-voice", 0.85, 1.3, false), ("hud-silence", 0.0, 2.1, false), ("hud-transcribing", 0.0, 0.7, true) })
         {

@@ -17,6 +17,8 @@ internal sealed class AppController : IDisposable
     private readonly GlobalHotkey _hotkey;
     private readonly RecordingHud _hud;
     private bool _askedAboutMic;
+    private readonly UpdateChecker _updates = new();
+    private DispatcherTimer? _updateTimer;
 
     public AppSettings Settings { get; }
     public DictationController Dictation { get; }
@@ -68,6 +70,16 @@ internal sealed class AppController : IDisposable
             // Après app.Run() : les suites des await reviennent ainsi sur le thread de l'interface
             // (avant Run il n'y a pas encore de SynchronizationContext).
             _ui.BeginInvoke(() => _ = LoadActiveModelAsync());
+            // Première vérification une minute après le lancement, puis contrôle toutes les heures
+            // (une requête au plus par 24 h).
+            _updateTimer = new DispatcherTimer(TimeSpan.FromHours(1), DispatcherPriority.Background,
+                                               (_, _) => _ = CheckForUpdatesAsync(manual: false), _ui);
+            _ui.BeginInvoke(async () =>
+            {
+                await Task.Delay(TimeSpan.FromMinutes(1));
+                _ = CheckForUpdatesAsync(manual: false);
+                _updateTimer.Start();
+            });
         }
         DiagnosticLog.Write($"démarrage {Environment.ProcessPath} micro={(MicrophonePrivacy.HasDevice ? "ok" : "absent")} bloqué={MicrophonePrivacy.IsBlocked}");
     }
@@ -248,6 +260,70 @@ internal sealed class AppController : IDisposable
         Changed?.Invoke();
     }
 
+    // ---- Mises à jour ----
+
+    public static Version CurrentVersion { get; } =
+        typeof(AppController).Assembly.GetName().Version is { } v ? new Version(v.Major, v.Minor, Math.Max(v.Build, 0)) : new Version(0, 0, 0);
+
+    private static string Arch => System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture
+        == System.Runtime.InteropServices.Architecture.Arm64 ? "arm64" : "x64";
+
+    /// <summary>Version plus récente signée et disponible (ligne du menu, page À propos).</summary>
+    public AvailableUpdate? AvailableUpdate { get; private set; }
+    public bool CheckingForUpdates { get; private set; }
+    /// <summary>Échec de la dernière vérification manuelle (affiché dans À propos).</summary>
+    public string? UpdateError { get; private set; }
+    /// <summary>Nouvelle version trouvée et jamais signalée : notification Windows.</summary>
+    public event Action<AvailableUpdate>? UpdateFound;
+
+    internal void ShowUpdateForSnapshots(AvailableUpdate? update) => AvailableUpdate = update;
+
+    public async Task CheckForUpdatesAsync(bool manual)
+    {
+        if (CheckingForUpdates) return;
+        if (!manual && (!Settings.CheckForUpdates
+                        || Settings.LastUpdateCheck is { } last && DateTimeOffset.Now - last < TimeSpan.FromHours(24)))
+            return;
+        CheckingForUpdates = true;
+        UpdateError = null;
+        Changed?.Invoke();
+        try
+        {
+            AvailableUpdate = await _updates.CheckAsync(CurrentVersion, Arch);
+            Settings.LastUpdateCheck = DateTimeOffset.Now;
+            DiagnosticLog.Write($"mises à jour : {(AvailableUpdate is { } u ? $"{u.DisplayVersion} disponible" : "à jour")}");
+            if (AvailableUpdate is { } found && Settings.NotifiedUpdateVersion != found.DisplayVersion)
+            {
+                Settings.NotifiedUpdateVersion = found.DisplayVersion;
+                UpdateFound?.Invoke(found);
+            }
+            Save();
+        }
+        catch (Exception e)
+        {
+            // Hors ligne, release sans manifeste, signature refusée… : silencieux sauf vérification manuelle.
+            DiagnosticLog.Write($"vérification des mises à jour impossible : {e.Message}");
+            if (manual) UpdateError = L("Couldn't check for updates. Try again later.");
+        }
+        CheckingForUpdates = false;
+        Changed?.Invoke();
+    }
+
+    /// <summary>Télécharge et vérifie l'installeur (taille, SHA-256 signé), puis le lance en silencieux :
+    /// il ferme WisperKit, installe par-dessus et le relance (/RELAUNCH=1, cf. WisperKit.iss).</summary>
+    public async Task InstallUpdateAsync(AvailableUpdate update, IProgress<double> progress, CancellationToken ct)
+    {
+        var dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "WisperKit-update");
+        var installer = await _updates.DownloadAsync(update, dir, progress, ct);
+        DiagnosticLog.Write($"installation de la mise à jour {update.DisplayVersion}");
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(installer)
+        {
+            Arguments = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /RELAUNCH=1",
+            UseShellExecute = true,
+        });
+        Application.Current.Shutdown();
+    }
+
     // ---- Libellés ----
 
     public string StatusLine => Dictation.State switch
@@ -267,6 +343,7 @@ internal sealed class AppController : IDisposable
 
     public void Dispose()
     {
+        _updateTimer?.Stop();
         if (_hotkey is not null) GpuGuard.Default.Clear(); // sortie propre (hors mode captures)
         _hotkey?.Dispose();
         _transcriber.Dispose();

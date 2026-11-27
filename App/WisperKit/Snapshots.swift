@@ -14,10 +14,15 @@ enum Snapshots {
 
         app.forceReadyForSnapshots()
         render(MenuBarView().environment(app), size: CGSize(width: 280, height: 168), to: dir.appending(path: "menu.png"))
+        app.updater.forceAvailableForSnapshots("0.3.0")
+        render(MenuBarView().environment(app), size: CGSize(width: 280, height: 220), to: dir.appending(path: "menu-update.png"))
         for page in SettingsPage.allCases {
             render(SettingsView(initialPage: page).environment(app), size: CGSize(width: 760, height: 540),
                    to: dir.appending(path: "settings-\(page.rawValue).png"))
         }
+        // Page Général entière (la section Mises à jour est sous la ligne de flottaison).
+        render(GeneralPage().environment(app).padding(28).background(Theme.background), size: CGSize(width: 570, height: 830),
+               to: dir.appending(path: "settings-general-full.png"))
         let frames: [(String, Double, Double, Bool)] = [
             ("hud-voix", 0.85, 1.3, false), ("hud-silence", 0.0, 2.1, false), ("hud-transcription", 0, 0.7, true),
         ]

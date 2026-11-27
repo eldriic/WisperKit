@@ -28,19 +28,24 @@ xcodebuild -project WisperKit.xcodeproj -scheme WisperKit -configuration Release
   ${WK_VERSION:+MARKETING_VERSION="$WK_VERSION"} build -quiet
 
 APP="$DERIVED/Build/Products/Release/WisperKit.app"
-rm -rf build.noindex/WisperKit.app && mkdir -p build.noindex
-ditto --norsrc --noextattr "$APP" build.noindex/WisperKit.app
+# Signature hors de ~/Documents (iCloud Drive remet des attributs sur les bundles de Sparkle
+# pendant la signature), puis copie dans build.noindex/.
+SIGNED="$HOME/Library/Caches/WisperKit/Signed.noindex/WisperKit.app"
+rm -rf "$SIGNED" && mkdir -p "${SIGNED:h}"
+ditto --norsrc --noextattr "$APP" "$SIGNED"
 if [[ "$IDENTITY" != "-" ]]; then
-  codesign --force --deep --sign "$IDENTITY" --identifier com.eldriic.wisperkit build.noindex/WisperKit.app
+  ./Scripts/sign-app.sh "$IDENTITY" "$SIGNED"
 fi
-codesign --verify --deep build.noindex/WisperKit.app
+codesign --verify --deep --strict "$SIGNED"
+rm -rf build.noindex/WisperKit.app && mkdir -p build.noindex
+ditto --norsrc --noextattr "$SIGNED" build.noindex/WisperKit.app
 echo "→ build.noindex/WisperKit.app"
 
 if [[ "${1:-}" == "--install" ]]; then
   pkill -x WisperKit 2>/dev/null || true
   while pgrep -x WisperKit >/dev/null; do sleep 0.2; done  # sinon open échoue (-600)
   rm -rf /Applications/WisperKit.app
-  ditto --norsrc --noextattr build.noindex/WisperKit.app /Applications/WisperKit.app
+  ditto --norsrc --noextattr "$SIGNED" /Applications/WisperKit.app
   # LaunchServices peut refuser l'ouverture (-600) juste après la fermeture : on réessaie.
   for _ in 1 2 3 4 5; do open /Applications/WisperKit.app 2>/dev/null && break; sleep 1; done
   echo "→ /Applications/WisperKit.app lancé"

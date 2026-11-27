@@ -4,6 +4,14 @@ All notable changes to WisperKit are documented here. The format follows [Keep a
 
 ## [Unreleased]
 
+### Added
+- **Updates** (macOS and Windows): WisperKit checks GitHub once a day for a new version and offers it in its menu (**Update available**); on Windows a notification also appears once per version. One click downloads, verifies and installs it, then WisperKit reopens with your settings and models. Turn the check off or run it by hand in **Settings → Updates**.
+- macOS updates use [Sparkle](https://sparkle-project.org) with EdDSA-signed archives; Windows installers must match a SHA-256 listed in an ECDSA-signed manifest. The signing keys never leave the release machine.
+
+### Changed
+- **Privacy**: besides the model download, the update check is now the only network request (no data sent, can be turned off).
+- **Homebrew**: the cask is marked `auto_updates`, since WisperKit updates itself.
+
 ## [0.2.1] - 2026-11-27
 
 ### Fixed

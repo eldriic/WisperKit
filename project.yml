@@ -16,6 +16,10 @@ packages:
   KeyboardShortcuts:
     url: https://github.com/sindresorhus/KeyboardShortcuts
     from: "3.0.0"
+  # Mises à jour : appcast + archives signées EdDSA (cf. Scripts/release.sh).
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: "2.7.0"
 
 targets:
   WisperKit:
@@ -27,13 +31,17 @@ targets:
       - package: WisperKitCore
         product: WisperKitCore
       - package: KeyboardShortcuts
+      - package: Sparkle
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.eldriic.wisperkit
         PRODUCT_NAME: WisperKit
         GENERATE_INFOPLIST_FILE: YES
+        # Clés Sparkle (flux, clé publique EdDSA) fusionnées avec le Info.plist généré.
+        INFOPLIST_FILE: App/WisperKit/Info.plist
         MARKETING_VERSION: "0.2.1"
-        CURRENT_PROJECT_VERSION: "1"
+        # Sparkle compare CFBundleVersion : on le garde égal à la version affichée.
+        CURRENT_PROJECT_VERSION: "$(MARKETING_VERSION)"
         SWIFT_VERSION: "6.0"
         # App de barre de menus : pas d'icône dans le Dock.
         INFOPLIST_KEY_LSUIElement: YES

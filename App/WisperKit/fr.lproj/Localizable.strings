@@ -92,3 +92,14 @@
 "Auto-detect works for most people; forcing a language avoids detection mistakes." = "La détection auto convient à la plupart des gens ; forcer une langue évite les erreurs de détection.";
 "Speak any language, get English text. Works best with large-v3." = "Parle dans n'importe quelle langue, obtiens du texte en anglais. Fonctionne mieux avec large-v3.";
 "Translate to English" = "Traduire en anglais";
+
+/* Mises à jour (communs macOS / Windows) */
+"Update available" = "Mise à jour disponible";
+"Updates" = "Mises à jour";
+"Check for updates automatically" = "Rechercher les mises à jour automatiquement";
+"Once a day, WisperKit asks GitHub for the latest version. Nothing else is sent." = "Une fois par jour, WisperKit demande à GitHub la dernière version. Rien d'autre n'est envoyé.";
+"Check now" = "Vérifier";
+"Version %@" = "Version %@";
+"WisperKit %@ is available." = "WisperKit %@ est disponible.";
+"Not checked yet." = "Pas encore vérifié.";
+"Up to date · checked %@" = "À jour · vérifié le %@";

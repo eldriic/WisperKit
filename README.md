@@ -57,7 +57,7 @@ brew trust eldriic/tap        # Homebrew asks you to trust third-party taps once
 brew install --cask wisperkit
 ```
 
-Updates: `brew upgrade --cask wisperkit`.
+Updates: WisperKit checks for new versions once a day and installs them from its menu (**Update available**). `brew upgrade --cask wisperkit` works too.
 
 ### Manual download
 
@@ -95,6 +95,8 @@ Requirements: **Windows 10 (1809) or 11**, x64 or ARM64, ~1 GB of free disk spac
 
 WisperKit lives in the notification area (click the icon for the menu). No Accessibility permission is needed on Windows; if the microphone is blocked, the welcome window links to **Settings → Privacy → Microphone**. Text can't be inserted into apps running as administrator. Diagnostic log: `%LOCALAPPDATA%\WisperKit\Logs\wisperkit.log`.
 
+New versions are offered in the menu (**Update available**) and with a notification: WisperKit downloads the installer, checks its signed SHA-256, then installs it and reopens.
+
 `winget install eldriic.WisperKit` will be available once the package is accepted in the winget repository.
 
 ## Usage
@@ -122,7 +124,8 @@ Models are stored in `~/Library/Application Support/WisperKit/Models`.
 ## Privacy
 
 - Audio is recorded in memory, transcribed on your Mac and discarded. Nothing is uploaded, logged or kept.
-- The only network access is the one-time model download from [Hugging Face](https://huggingface.co/argmaxinc/whisperkit-coreml).
+- Network access is limited to the one-time model download from [Hugging Face](https://huggingface.co/argmaxinc/whisperkit-coreml) and a daily update check against this repository's GitHub releases. The check sends nothing but the request itself; turn it off in **Settings → Updates**.
+- Updates are verified before they are installed: the macOS update is signed with an EdDSA key ([Sparkle](https://sparkle-project.org)), the Windows installer must match a SHA-256 signed with an ECDSA key. Neither key is stored on GitHub.
 - No analytics, no telemetry, no account.
 
 ## Troubleshooting
@@ -236,6 +239,8 @@ WisperKit was **vibe-coded**: designed and built through conversation with an AI
 Site : [wisperkit.eldriic.com](https://wisperkit.eldriic.com).
 
 **Installation** : `brew tap eldriic/tap && brew trust eldriic/tap && brew install --cask wisperkit`, ou télécharge le DMG de la [dernière version](https://github.com/eldriic/WisperKit/releases/latest), glisse l'app dans Applications, puis au premier lancement va dans **Réglages Système → Confidentialité et sécurité → Ouvrir quand même**. Une fenêtre d'accueil te guide ensuite : micro, Accessibilité (pour écrire au curseur), téléchargement du modèle (~1,6 Go, une seule fois). L'interface est en anglais par défaut : passe-la en français dans **Settings → General → Interface language**.
+
+**Mises à jour** : WisperKit vérifie une fois par jour s'il existe une nouvelle version (requête vers GitHub, rien d'autre n'est envoyé ; désactivable dans **Réglages → Mises à jour**) et propose de l'installer depuis son menu. La mise à jour est signée et vérifiée avant installation.
 
 **Traduction** : active **Traduire en anglais** et parle dans ta langue, le texte s'écrit directement en anglais. Option désactivée, le texte reste dans la langue parlée (détectée automatiquement).
 

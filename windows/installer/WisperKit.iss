@@ -126,6 +126,9 @@ Root: HKCU; Subkey: "{#RunKey}"; ValueType: string; ValueName: "WisperKit"; \
 
 [Run]
 Filename: "{app}\WisperKit.exe"; Description: "{cm:LaunchApp}"; Flags: nowait postinstall skipifsilent
+; Mise à jour depuis l'app (/VERYSILENT /RELAUNCH=1) : on relance WisperKit en arrière-plan,
+; avec les droits de l'utilisateur même si l'installation « tous les utilisateurs » a demandé l'élévation.
+Filename: "{app}\WisperKit.exe"; Parameters: "--background"; Flags: nowait runasoriginaluser; Check: RelaunchRequested
 
 [UninstallRun]
 Filename: "{sys}\taskkill.exe"; Parameters: "/im WisperKit.exe /f"; Flags: runhidden; RunOnceId: "StopWisperKit"
@@ -136,6 +139,11 @@ Type: filesandordirs; Name: "{app}"
 [Code]
 const
   ExeName = 'WisperKit.exe';
+
+function RelaunchRequested(): Boolean;
+begin
+  Result := ExpandConstant('{param:RELAUNCH|0}') = '1';
+end;
 
 function IsAppRunning(): Boolean;
 var

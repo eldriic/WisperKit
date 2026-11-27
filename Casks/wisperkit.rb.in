@@ -10,6 +10,9 @@ cask "wisperkit" do
   depends_on arch: :arm64
   depends_on macos: :sequoia
 
+  # Mises à jour intégrées (Sparkle) : brew ne force pas la sienne.
+  auto_updates true
+
   app "WisperKit.app"
 
   # L'app n'est pas notarisée par Apple : on retire la quarantaine pour éviter le blocage Gatekeeper.

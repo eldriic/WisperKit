@@ -39,6 +39,7 @@ final class AppModel {
     ]
 
     let dictation: DictationController
+    let updater: Updater
     private let transcriber = Transcriber()
     private let defaults = UserDefaults.standard
     @ObservationIgnored private lazy var hud = RecordingHUD(dictation: dictation)
@@ -122,6 +123,8 @@ final class AppModel {
         showHUD = defaults.bool(forKey: "showHUD")
         translateToEnglish = defaults.bool(forKey: "translateToEnglish")
 
+        // Pas de vérification de mise à jour dans les modes Debug (captures, autotest, icône).
+        updater = Updater(enabled: !args.contains("--snapshots") && !args.contains("--selftest") && !args.contains("--icon"))
         dictation = DictationController(recorder: AudioRecorder(), transcriber: transcriber, output: TextInserter())
         dictation.language = language
         dictation.translateToEnglish = translateToEnglish

@@ -13,7 +13,6 @@
 "Start with Windows" = "Lancer avec Windows";
 "The transcription model is downloading (%d%%, about 550 MB, one time only)." = "Le modèle de transcription se télécharge (%d %%, environ 550 Mo, une seule fois).";
 "The transcription model will be downloaded (about 550 MB, one time only)." = "Le modèle de transcription va être téléchargé (environ 550 Mo, une seule fois).";
-"Version %@" = "Version %@";
 "Windows blocks the microphone for desktop apps: allow it in the privacy settings." = "Windows bloque le micro pour les applications de bureau : autorise-le dans les paramètres de confidentialité.";
 "WisperKit is vibe-coded: built through conversation with an AI coding assistant. MIT license — Whisper by OpenAI, whisper.cpp, Whisper.net, NAudio, H.NotifyIcon." = "WisperKit est vibe-codé : construit en dialoguant avec un assistant de code IA. Licence MIT — Whisper (OpenAI), whisper.cpp, Whisper.net, NAudio, H.NotifyIcon.";
 "WisperKit opens when you sign in." = "WisperKit s'ouvre quand tu te connectes.";
@@ -29,3 +28,12 @@
 "Restart WisperKit to apply." = "Relance WisperKit pour appliquer.";
 "In use: %@" = "Utilisé : %@";
 "Use Ctrl, Alt or Win with a key, or a function key. Esc cancels." = "Utilise Ctrl, Alt ou Win avec une touche, ou une touche de fonction. Échap annule.";
+"Cancel" = "Annuler";
+"Checking…" = "Vérification…";
+"Couldn't check for updates. Try again later." = "Impossible de vérifier les mises à jour. Réessaie plus tard.";
+"Install" = "Installer";
+"Install and restart" = "Installer et relancer";
+"Later" = "Plus tard";
+"The update couldn't be installed. Try again, or download it from the website." = "La mise à jour n'a pas pu être installée. Réessaie, ou télécharge-la depuis le site.";
+"What's new" = "Nouveautés";
+"You have %@. WisperKit will close, install the update, and reopen. Your settings and models are kept." = "Tu as la version %@. WisperKit va se fermer, installer la mise à jour et se rouvrir. Tes réglages et tes modèles sont conservés.";

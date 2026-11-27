@@ -84,7 +84,7 @@
           <div class="cmd"><pre><code>brew tap eldriic/tap
 brew trust eldriic/tap
 brew install --cask wisperkit</code></pre><button class="copy" type="button" data-copy="brew tap eldriic/tap && brew trust eldriic/tap && brew install --cask wisperkit">Copy</button></div>
-          <p>Homebrew asks you to trust a third-party tap once. Update later with <code>brew upgrade --cask wisperkit</code>.</p>
+          <p>Homebrew asks you to trust a third-party tap once. WisperKit then updates itself from its menu; <code>brew upgrade --cask wisperkit</code> works too.</p>
           <h3>Manual download</h3>
           <ol>
             <li>Download <a href="https://github.com/eldriic/WisperKit/releases/latest/download/WisperKit.dmg"><code>WisperKit.dmg</code></a> from the latest release.</li>
@@ -163,7 +163,8 @@ brew install --cask wisperkit</code></pre><button class="copy" type="button" dat
           <h2>Privacy</h2>
           <ul>
             <li>Audio is recorded in memory, transcribed on your computer and discarded. Nothing is uploaded, logged or kept.</li>
-            <li>The only network access is the one-time model download from <a href="https://huggingface.co/argmaxinc/whisperkit-coreml">Hugging Face</a>.</li>
+            <li>Network access is limited to the one-time model download from <a href="https://huggingface.co/argmaxinc/whisperkit-coreml">Hugging Face</a> and a daily update check against GitHub releases, which sends nothing but the request. Turn it off in Settings, Updates.</li>
+            <li>Updates are signed, and verified before they are installed.</li>
             <li>No analytics, no telemetry, no account.</li>
           </ul>
         </section>

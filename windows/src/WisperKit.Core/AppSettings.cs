@@ -25,6 +25,11 @@ public sealed class AppSettings
     public bool Onboarded { get; set; }
     /// <summary>Carte graphique via Vulkan (Windows). Coupé automatiquement après un plantage du pilote.</summary>
     public bool UseGpu { get; set; } = true;
+    /// <summary>Vérification quotidienne des mises à jour (seule requête réseau hors modèles).</summary>
+    public bool CheckForUpdates { get; set; } = true;
+    public DateTimeOffset? LastUpdateCheck { get; set; }
+    /// <summary>Dernière version signalée par une notification (une seule par version).</summary>
+    public string? NotifiedUpdateVersion { get; set; }
 
     private static readonly JsonSerializerOptions Json = new()
     {

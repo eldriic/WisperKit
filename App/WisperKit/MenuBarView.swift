@@ -31,6 +31,14 @@ struct MenuBarView: View {
                 .help(L("Copy the last dictation"))
             }
             separator
+            if let version = app.updater.availableVersion {
+                MenuRow(icon: "arrow.down.circle", title: L("Update available"), subtitle: "WisperKit \(version)",
+                        tint: Theme.blue) {
+                    dismiss()
+                    app.updater.checkNow()
+                    NSApp.activate()
+                }
+            }
             MenuRow(icon: "gearshape", title: L("Settings…"), shortcut: "⌘,") {
                 dismiss()
                 openWindow(id: WisperKitApp.settingsWindowID)
@@ -83,6 +91,8 @@ struct MenuRow: View {
     var subtitle: String?
     var shortcut: String?
     var trailingIcon: String?
+    /// Ligne mise en avant (mise à jour disponible) : icône et titre de cette couleur.
+    var tint: Color?
     var enabled = true
     let action: () -> Void
     @State private var hover = false
@@ -91,8 +101,9 @@ struct MenuRow: View {
         Button(action: action) {
             HStack(alignment: subtitle == nil ? .center : .top, spacing: 10) {
                 Image(systemName: icon).frame(width: 18).padding(.top, subtitle == nil ? 0 : 1)
+                    .foregroundStyle(tint ?? (enabled ? Theme.text : Theme.secondary))
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(title)
+                    Text(title).foregroundStyle(tint ?? (enabled ? Theme.text : Theme.secondary))
                     if let subtitle {
                         Text(subtitle).font(.system(size: 11)).foregroundStyle(Theme.secondary)
                             .lineLimit(1).truncationMode(.tail)

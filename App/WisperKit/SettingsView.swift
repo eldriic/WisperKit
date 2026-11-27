@@ -146,7 +146,43 @@ struct GeneralPage: View {
                     }
                 }
             }
+            UpdatesSection()
         }
+    }
+}
+
+// MARK: - Mises à jour
+
+struct UpdatesSection: View {
+    @Environment(AppModel.self) private var app
+
+    var body: some View {
+        @Bindable var updater = app.updater
+        VStack(alignment: .leading, spacing: 0) {
+            SectionTitle(text: L("Updates"))
+            SettingsCard {
+                SettingsRow(title: L("Check for updates automatically"),
+                            description: L("Once a day, WisperKit asks GitHub for the latest version. Nothing else is sent.")) {
+                    BlueSwitch(isOn: $updater.automaticChecks)
+                }
+                SettingsRow(title: L("Version %@", Self.version), description: status) {
+                    Button(L("Check now")) { app.updater.checkNow() }
+                        .buttonStyle(PillButtonStyle())
+                        .disabled(!app.updater.canCheck)
+                }
+            }
+        }
+    }
+
+    static var version: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+    }
+
+    private var status: String {
+        if let version = app.updater.availableVersion { return L("WisperKit %@ is available.", version) }
+        guard let date = app.updater.lastCheck else { return L("Not checked yet.") }
+        let when = date.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(Localizer.shared.locale))
+        return L("Up to date · checked %@", when)
     }
 }
 

@@ -91,3 +91,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "${{ github.event.release.tag_name }}" dist/*.exe --clobber
+
+      # Nouvelle version sur winget (PR automatique vers microsoft/winget-pkgs via komac).
+      # Activée par la variable de dépôt WINGET_AUTOSUBMIT=true, une fois le paquet eldriic.WisperKit
+      # accepté ; le secret WINGET_TOKEN est un PAT classique (scope public_repo) du compte eldriic.
+      - name: Submit to winget
+        if: github.event_name == 'release' && vars.WINGET_AUTOSUBMIT == 'true'
+        uses: vedantmgoyal9/winget-releaser@v2
+        with:
+          identifier: eldriic.WisperKit
+          version: ${{ steps.version.outputs.value }}
+          installers-regex: 'WisperKit-Setup-(x64|arm64)\.exe$'
+          token: ${{ secrets.WINGET_TOKEN }}

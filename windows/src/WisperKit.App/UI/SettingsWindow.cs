@@ -20,6 +20,8 @@ internal sealed class SettingsWindow : Window
     private readonly StackPanel _sidebar = new();
     private readonly ContentControl _content = new();
     private bool _recording;
+    /// <summary>Ouvre la fenêtre de mise à jour (fournie par Program).</summary>
+    public Action<AvailableUpdate>? OpenUpdate { get; set; }
 
     public SettingsWindow(AppController app, SettingsPage page = SettingsPage.General)
     {
@@ -309,9 +311,23 @@ internal sealed class SettingsWindow : Window
 
     private void About(StackPanel body)
     {
-        var version = typeof(SettingsWindow).Assembly.GetName().Version?.ToString(3) ?? "?";
+        var version = AppController.CurrentVersion.ToString(3);
+        body.Children.Add(Theme.SectionTitle(L("Updates")));
+        var status = _app.CheckingForUpdates ? L("Checking…")
+                   : _app.UpdateError ?? (_app.AvailableUpdate is { } u ? L("WisperKit %@ is available.", u.DisplayVersion)
+                   : _app.Settings.LastUpdateCheck is { } last
+                       ? L("Up to date · checked %@", last.LocalDateTime.ToString("g", System.Globalization.CultureInfo.GetCultureInfo(Localizer.Language)))
+                       : L("Not checked yet."));
         body.Children.Add(Theme.Card(
-            Theme.Row("WisperKit", L("Version %@", version), Theme.PillButton("GitHub", () => Open("https://github.com/eldriic/WisperKit"))),
+            Theme.Row(L("Check for updates automatically"), L("Once a day, WisperKit asks GitHub for the latest version. Nothing else is sent."),
+                new Switch(_app.Settings.CheckForUpdates, v => _app.Update(x => x.CheckForUpdates = v))),
+            Theme.Row(L("Version %@", version), status, _app.AvailableUpdate is { } available
+                ? Theme.PillButton(L("Install"), () => OpenUpdate?.Invoke(available), fill: Theme.Blue)
+                : Theme.PillButton(L("Check now"), () => _ = _app.CheckForUpdatesAsync(manual: true)))));
+
+        body.Children.Add(Theme.SectionTitle("WisperKit"));
+        body.Children.Add(Theme.Card(
+            Theme.Row("GitHub", "github.com/eldriic/WisperKit", Theme.PillButton(L("Open"), () => Open("https://github.com/eldriic/WisperKit"))),
             Theme.Row(L("Diagnostic log"), DiagnosticLog.FilePath, Theme.PillButton(L("Open"), () =>
             {
                 if (System.IO.File.Exists(DiagnosticLog.FilePath)) Open(DiagnosticLog.FilePath);

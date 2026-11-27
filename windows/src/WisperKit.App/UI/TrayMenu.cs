@@ -11,7 +11,7 @@ namespace WisperKit.App.UI;
 /// <summary>Contenu du menu de la zone de notification (même structure que le menu macOS).</summary>
 internal static class TrayMenu
 {
-    public static Border Build(AppController app, Action close, Action openSettings, Action quit)
+    public static Border Build(AppController app, Action close, Action openSettings, Action quit, Action openUpdate)
     {
         var stack = new StackPanel();
 
@@ -40,6 +40,9 @@ internal static class TrayMenu
                 close();
             }, trailingGlyph: ""));
         stack.Children.Add(Separator());
+        if (app.AvailableUpdate is { } update)
+            stack.Children.Add(Item("", L("Update available"), null, "WisperKit " + update.DisplayVersion, true,
+                () => { close(); openUpdate(); }, tint: Theme.Blue));
         stack.Children.Add(Item("", L("Settings…"), null, null, true, () => { close(); openSettings(); }));
         stack.Children.Add(Item("", L("Quit"), null, null, true, quit));
 
@@ -61,13 +64,13 @@ internal static class TrayMenu
     };
 
     private static Border Item(string glyph, string title, string? shortcut, string? subtitle, bool enabled, Action action,
-                               string? trailingGlyph = null)
+                               string? trailingGlyph = null, Brush? tint = null)
     {
         var grid = new Grid();
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(26) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var color = enabled ? Theme.Text : Theme.Secondary;
+        var color = tint ?? (enabled ? Theme.Text : Theme.Secondary);
         grid.Children.Add(Theme.Icon(glyph, 14, color));
         var texts = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
         texts.Children.Add(Theme.Label(title, 13, color));
