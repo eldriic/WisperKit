@@ -13,6 +13,10 @@ Updating from 0.2.1 or earlier is manual (download the new version, or `brew upg
 ### Changed
 - **Privacy**: besides the model download, the update check is now the only network request (no data sent, can be turned off).
 - **Homebrew**: the cask is marked `auto_updates`, since WisperKit updates itself.
+- **Windows**: the diagnostic log uses local time with the date, instead of UTC time only.
+
+### Fixed
+- **Windows**: models could not be downloaded (the download never completed).
 
 ## [0.2.1] - 2026-11-27
 
