@@ -4,6 +4,6 @@
   "installCommand": "",
   "buildCommand": "python3 site/build.py",
   "outputDirectory": "site",
-  "ignoreCommand": "if git diff --quiet HEAD^ HEAD -- site CHANGELOG.md vercel.json 2>/dev/null; then exit 0; else exit 1; fi",
+  "ignoreCommand": "if git diff --quiet \"${VERCEL_GIT_PREVIOUS_SHA:-HEAD^}\" HEAD -- site CHANGELOG.md vercel.json 2>/dev/null; then exit 0; else exit 1; fi",
   "cleanUrls": true
 }
