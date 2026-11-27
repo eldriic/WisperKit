@@ -1,8 +1,8 @@
 cask "wisperkit" do
-  version "0.2.0"
-  sha256 "942132412c7b44bc165694a7cc1e3f05ceabec3fc45de744d9c34dca1d66f9fa"
+  version "0.2.1"
+  sha256 "74b69765edc4a91270b53e8b23ec64d05d7d7cd0035eee33e2df3b13344a6a4f"
 
-  url "https://github.com/eldriic/WisperKit/releases/download/v#{version}/WisperKit-#{version}.dmg"
+  url "https://github.com/eldriic/WisperKit/releases/download/v#{version}/WisperKit.dmg"
   name "WisperKit"
   desc "Local Whisper dictation from the menu bar"
   homepage "https://github.com/eldriic/WisperKit"
