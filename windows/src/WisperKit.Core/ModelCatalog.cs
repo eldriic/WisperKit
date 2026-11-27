@@ -28,7 +28,10 @@ public sealed class ModelStore(string directory, HttpClient? http = null)
     public static ModelStore Default { get; } = new(Path.Combine(AppPaths.LocalData, "Models"));
 
     private static readonly HttpClient SharedHttp = CreateClient();
-    private readonly HttpClient Http = http ?? SharedHttp;
+    private readonly HttpClient? _http = http;
+    // Résolu à l'usage, pas à la construction : Default est initialisé avant SharedHttp
+    // (ordre du fichier), il recevait donc un client null et aucun téléchargement n'aboutissait.
+    internal HttpClient Http => _http ?? SharedHttp;
     private readonly object _lock = new();
     /// <summary>Téléchargements en cours, partagés : la page Modèle et le chargement du modèle actif
     /// peuvent demander le même fichier en même temps sans se disputer le .part.</summary>

@@ -10,7 +10,8 @@ public static class DiagnosticLog
 
     public static void Write(string message)
     {
-        var line = $"{DateTime.UtcNow:HH:mm:ss.fff} {message}{Environment.NewLine}";
+        // Heure locale avec la date : se lit comme l'horloge du PC (l'heure UTC seule semblait décalée).
+        var line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} {message}{Environment.NewLine}";
         ThreadPool.QueueUserWorkItem(_ =>
         {
             lock (Lock)

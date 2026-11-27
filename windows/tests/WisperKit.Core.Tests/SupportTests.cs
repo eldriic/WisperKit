@@ -21,6 +21,13 @@ public class ModelStoreTests
     }
 
     [Fact]
+    public void DefaultStoreHasAnHttpClient()
+    {
+        Assert.NotNull(ModelStore.Default.Http);
+        Assert.NotNull(new ModelStore(Path.GetTempPath()).Http);
+    }
+
+    [Fact]
     public void UnknownModelFallsBackToDefault() => Assert.Equal(WhisperModel.Turbo, WhisperModel.Named("nope"));
 
     [Fact]

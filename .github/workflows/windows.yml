@@ -35,7 +35,7 @@ jobs:
       - name: Version
         id: version
         run: |
-          $v = if ("${{ github.event_name }}" -eq "release") { "${{ github.event.release.tag_name }}".TrimStart("v") } else { "0.2.0" }
+          $v = if ("${{ github.event_name }}" -eq "release") { "${{ github.event.release.tag_name }}".TrimStart("v") } else { "0.3.0" }
           "value=$v" >> $env:GITHUB_OUTPUT
 
       - name: Tests
