@@ -1,6 +1,6 @@
 cask "wisperkit" do
-  version "0.2.1"
-  sha256 "74b69765edc4a91270b53e8b23ec64d05d7d7cd0035eee33e2df3b13344a6a4f"
+  version "0.3.0"
+  sha256 "6b3390c5a91734581e53fdf4198aeea45b2d6e0f10e5710cb4a637d6141969df"
 
   url "https://github.com/eldriic/WisperKit/releases/download/v#{version}/WisperKit.dmg"
   name "WisperKit"
@@ -9,6 +9,9 @@ cask "wisperkit" do
 
   depends_on arch: :arm64
   depends_on macos: :sequoia
+
+  # Mises à jour intégrées (Sparkle) : brew ne force pas la sienne.
+  auto_updates true
 
   app "WisperKit.app"
 
