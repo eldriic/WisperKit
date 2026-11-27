@@ -40,6 +40,22 @@
     </header>
     <div class="releases">
 <!-- changelog:start -->
+      <article class="release" id="v0.3.0">
+        <div class="release__meta"><time datetime="2026-11-27">November 27, 2026</time><a class="release__tag" href="https://github.com/eldriic/WisperKit/releases/tag/v0.3.0">0.3.0</a></div>
+        <div class="release__body">
+          <h2>Updating from 0.2.1 or earlier is manual (download the new version, or <code>brew upgrade --cask wisperkit</code>); from 0.3.0 on, WisperKit updates itself</h2>
+          <h3>Added</h3>
+          <ul>
+            <li><strong>Updates</strong> (macOS and Windows): WisperKit checks GitHub once a day for a new version and offers it in its menu (<strong>Update available</strong>); on Windows a notification also appears once per version. One click downloads, verifies and installs it, then WisperKit reopens with your settings and models. Turn the check off or run it by hand in <strong>Settings → Updates</strong>.</li>
+            <li>macOS updates use <a href="https://sparkle-project.org">Sparkle</a> with EdDSA-signed archives; Windows installers must match a SHA-256 listed in an ECDSA-signed manifest. The signing keys never leave the release machine.</li>
+          </ul>
+          <h3>Changed</h3>
+          <ul>
+            <li><strong>Privacy</strong>: besides the model download, the update check is now the only network request (no data sent, can be turned off).</li>
+            <li><strong>Homebrew</strong>: the cask is marked <code>auto_updates</code>, since WisperKit updates itself.</li>
+          </ul>
+        </div>
+      </article>
       <article class="release" id="v0.2.1">
         <div class="release__meta"><time datetime="2026-11-27">November 27, 2026</time><a class="release__tag" href="https://github.com/eldriic/WisperKit/releases/tag/v0.2.1">0.2.1</a></div>
         <div class="release__body">

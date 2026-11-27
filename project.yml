@@ -39,7 +39,7 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         # Clés Sparkle (flux, clé publique EdDSA) fusionnées avec le Info.plist généré.
         INFOPLIST_FILE: App/WisperKit/Info.plist
-        MARKETING_VERSION: "0.2.1"
+        MARKETING_VERSION: "0.3.0"
         # Sparkle compare CFBundleVersion : on le garde égal à la version affichée.
         CURRENT_PROJECT_VERSION: "$(MARKETING_VERSION)"
         SWIFT_VERSION: "6.0"

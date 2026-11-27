@@ -2,7 +2,9 @@
 
 All notable changes to WisperKit are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.3.0] - 2026-11-27
+
+Updating from 0.2.1 or earlier is manual (download the new version, or `brew upgrade --cask wisperkit`); from 0.3.0 on, WisperKit updates itself.
 
 ### Added
 - **Updates** (macOS and Windows): WisperKit checks GitHub once a day for a new version and offers it in its menu (**Update available**); on Windows a notification also appears once per version. One click downloads, verifies and installs it, then WisperKit reopens with your settings and models. Turn the check off or run it by hand in **Settings → Updates**.
@@ -49,6 +51,7 @@ First public release.
 ### Installation
 - Signed DMG on GitHub Releases and a Homebrew cask (`brew tap eldriic/tap && brew trust eldriic/tap && brew install --cask wisperkit`).
 
+[0.3.0]: https://github.com/eldriic/WisperKit/releases/tag/v0.3.0
 [0.2.1]: https://github.com/eldriic/WisperKit/releases/tag/v0.2.1
 [0.2.0]: https://github.com/eldriic/WisperKit/releases/tag/v0.2.0
 [0.1.0]: https://github.com/eldriic/WisperKit/releases/tag/v0.1.0
