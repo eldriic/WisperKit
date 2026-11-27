@@ -4,6 +4,8 @@ All notable changes to WisperKit are documented here. The format follows [Keep a
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-27
+
 ### Fixed
 - **Windows**: the app quit right after launch and no icon appeared in the notification area (the tray icon library could not convert the rendered icon).
 - **Windows**: the wave indicator barely moved with a normal voice. Windows delivers the raw microphone signal with no gain control, often 15–25 dB quieter than macOS; the level now adapts to the microphone's noise floor and your voice. The peak and noise levels of each dictation are written to the diagnostic log.
@@ -11,6 +13,7 @@ All notable changes to WisperKit are documented here. The format follows [Keep a
 ### Changed
 - **Windows installer**: dark look matching the app (black background, violet halo, the recording wave), welcome page with what WisperKit does and where to find it.
 - **Windows installer**: install for yourself (default, no admin rights) or for all users (admin, Program Files); a running WisperKit is closed before updating, a previous copy in the other scope is removed, the start-at-sign-in entry is checked after install, a missing executable (antivirus) is reported, and the uninstaller offers to delete the downloaded models and settings. Optional desktop shortcut. Setup log in `%TEMP%`.
+
 ## [0.2.0] - 2026-11-07
 
 ### Added
@@ -38,5 +41,6 @@ First public release.
 ### Installation
 - Signed DMG on GitHub Releases and a Homebrew cask (`brew tap eldriic/tap && brew trust eldriic/tap && brew install --cask wisperkit`).
 
+[0.2.1]: https://github.com/eldriic/WisperKit/releases/tag/v0.2.1
 [0.2.0]: https://github.com/eldriic/WisperKit/releases/tag/v0.2.0
 [0.1.0]: https://github.com/eldriic/WisperKit/releases/tag/v0.1.0
